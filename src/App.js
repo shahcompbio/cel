@@ -23,86 +23,82 @@ class App extends Component {
         })
         .then(response => {
           const jsonArr = Object.values(response.results);
+          // console.log(jsonArr)
           fetchUrl(response.next, [...arr, ...jsonArr], callback);
         })
       }
     }
 
-    function sortSamples(arr) {
-      // takes an array of sample objects
-      // returns a json object where patients are keys, 
-      // and values are a list of samples that belong to that patient
 
-      let patientDict = {};
+    function sortLibs(arr) {
+      let dict = {};
       for (let i = 0; i < arr.length; i++) {
-        const patientId = arr[i].anonymous_patient_id;
+        const patientId = arr[i].sample.anonymous_patient_id;
+        const sampleId = arr[i].sample.sample_id;
 
-        if (!patientDict.hasOwnProperty(patientId)) {
-          patientDict[patientId] = [];
+        if (!dict.hasOwnProperty(patientId)) {
+          dict[patientId] = [];
         }
 
-        // modify the sample object to make things easier for d3
-        arr[i].name = arr[i].sample_id; 
-        arr[i].size = 1;  // placeholder which seems to let pack do its thing and hence render the chart
-
-        patientDict[patientId].push(arr[i]);  // push the object
-      }
-
-      return patientDict;
-    }
-
-
-    function countSampleIds(arr) {
-      // an array of sample objects
-      let sampleList = [];
-      for (var sample in arr) {
-        if (!(sample.sample_id in sampleList)) {
-          sampleList.push(sample.sample_id);
+        if (!dict[patientId].hasOwnProperty(sampleId)) {
+          dict[patientId][sampleId] = [];
         }
+
+        const libObj = { "name": arr[i].pool_id, "num_sublibraries": arr[i].num_sublibraries, "level": "library", "size": 1};
+        dict[patientId][sampleId].push(libObj);  // push the object
       }
 
-      return sampleList.length;
+      // console.log(dict)
+
+      return dict;
     }
 
 
     function hierarchize(arr) {
-      let sortedSamples = sortSamples(arr);
+      let sortedLibs = sortLibs(arr);
 
       // now convert it into a format that d3 likes
       // result must be an object representing the root node
       const patientList = []; 
 
-      for (var patient in sortedSamples) {
+      for (let patient in sortedLibs) {
         const obj = {};
         obj.name = patient;
-        obj.children = sortedSamples[patient];
-        obj.nSamples = obj.children.length;
+        obj.type = "patient";
 
-        // check of number of objects associated with patient is the same as the number of
-        // sample IDs associated with the patient
-        // if (obj.children.length === countSampleIds(obj.children)) {
-        //   console.log("MATCH for " + patient);
-        // } else {
-        //   console.log("NO MATCH for " + patient)
-        // }
+        // TODO: refactor this double for-loop
+        let samples = [];
+        for (let key in sortedLibs[patient]) {
+          const sampleObj = {"name": key, "children": sortedLibs[patient][key], "level": "sample"}
+          sampleObj.nLibs = sortedLibs[patient][key].length;
+          samples.push(sampleObj);
+        }
+
+        obj.children = samples;
+        obj.nSamples = obj.children.length;
 
         patientList.push(obj);
       }
+
+      // console.log(patientList)
 
       return {"name": "samples", "children": patientList}
     }
 
 
-    const url = "http://colossus.bcgsc.ca/api/sample/?format=json";
-    fetchUrl(url, [], (arr) => this.setState({data: hierarchize(arr)}));
+  // const url = "http://colossus.bcgsc.ca/api/sample/?format=json";
+  const url = "http://colossus.bcgsc.ca/api/library/?format=json";
+  fetchUrl(url, [], (arr) => this.setState({data: hierarchize(arr)}));
 
   }
 
+
   render() {
     // console.log(this.state);
+    // <Chart data={this.state.data}/> 
     return (
       <div className="App">
-        <Chart data={this.state.data}/> 
+        <Chart data={this.state.data}/>
       </div>
     );
   }

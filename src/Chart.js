@@ -28,30 +28,44 @@ class Chart extends Component {
   		.sum(function(d) { return d.size; })
   		.sort(function(a, b) { return b.value - a.value });
 
+
+    // console.log(rootNode)
+
   	let pack = d3.pack()
   	    .size([diameter - 4, diameter - 4])
-  	    .padding(15);
+  	    .padding(6);
 
   	const nodeObj = node.selectAll(".node")
   		.data(pack(rootNode).descendants())
   		.enter().append("g")
   			.attr("id", function(d) { return d.data.name })
-  			.attr("class", function(d) { 
-  				return (d.children ? "node" : "leaf"); })
-        		.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+        .attr("class", function(d) { 
+          return (d.depth === 1 ? "patient" : d.depth === 2 ? "sample" : "library")
+        })
+    		.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 
     d3.selectAll("#samples").remove()  // remove the large circle at the back
 
+    var color = d3.scaleLinear()
+      .domain([-1, 5])
+      .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
+      .interpolate(d3.interpolateHcl);
+
     nodeObj.append("circle")
       .attr("r", function(d) { return d.r })
+      .style("fill", function(d) { return color(d.depth); });
 
-    node.selectAll(".node")
-      .on("mouseover", mouseOverNode)
-      .on("mouseout", mouseOutNode);
+    node.selectAll(".patient")
+      .on("mouseover", mouseOverPatient)
+      .on("mouseout", handleMouseOut);
 
-    node.selectAll(".leaf")
-      .on("mouseover", mouseOverLeaf)
-      .on("mouseout", mouseOutLeaf);
+    node.selectAll(".sample")
+      .on("mouseover", mouseOverSample)
+      .on("mouseout", handleMouseOut);
+
+    // node.selectAll(".library")
+    //   .on("mouseover", mouseOverLib)
+    //   .on("mouseout", handleMouseOut)
 
 
     // define div for the tooltip
@@ -59,59 +73,46 @@ class Chart extends Component {
         .attr("class", "tooltip")
 
 
-    function mouseOverNode(d, i) {
-      console.log(d);
-      d3.select(this).select("circle")
+    // handle mouse events
+    function handleMouseOver(selection, text) {
+      // animate circle itself
+      selection.select("circle")
         .transition()
           .duration(800)
         .style("stroke-opacity", .9)
-        .attr("r", function(d) {return d.r + 8})
+        .attr("r", function(d) { return d.r + 5});
 
+      // animate the tooltip box
       div.transition()
         .duration(800)
-        .style("opacity", .9)
+        .style("opacity", .9);
 
-      div.html("<b>patient id</b>:  " + d.data.name + "<br/>" + "<b>n samples</b>: " + d.data.nSamples)
+      div.html(text)
         .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY) + "px")
-        // .style("height", "50px")
-
+        .style("top", (d3.event.pageY) + "px");
     }
 
-    function mouseOutNode(d, i) {
+
+    function handleMouseOut(d, i) {
       d3.select(this).select("circle")
         .transition()
           .duration(1000)
         .style("stroke-opacity", 0) 
-        .attr("r", function(d) {return d.r})
+        .attr("r", function(d) { return d.r} )
 
       div.transition()
         .duration(800)
-        .style("opacity", 0);
+        .style("opacity", 0)
+
     }
 
-    function mouseOverLeaf(d, i) {
-      d3.select(this).select("circle")
-        .style("stroke-opacity", .9)
-        .attr("r", function(d) {return d.r + 5});
 
-      div.transition()
-        .duration(800)
-        .style("opacity", .9)
-
-      div.html("<b>sample id</b>: " + d.data.name)
-        .style("left", (d3.event.pageX) + "px")
-        .style("right", (d3.event.pageY) + "px")
+    function mouseOverPatient(d, i) {
+      handleMouseOver(d3.select(this), "<b>patient id</b>: " + d.data.name + "<br/> <b>n samples</b>: " + d.data.nSamples);
     }
 
-    function mouseOutLeaf(d, i) {
-      d3.select(this).select("circle")
-        .style("stroke-opacity", 0)
-        .attr("r", function(d) {return d.r});
-
-      div.transition()
-        .transition(800)
-        .style("opacity", 0);
+    function mouseOverSample(d, i) {
+      handleMouseOver(d3.select(this), "<b>sample id</b>: " + d.data.name + "<br/> <b>n libraries</b>: " + d.data.nLibs);
     }
 
   }
