@@ -39,9 +39,11 @@ div.tooltip {
     display: table;         
     padding: 2px;       
     font: 12px sans-serif;
-    border-radius: 3px;     
-    border: 0px;    
-    pointer-events: none;  
+    opacity: 0;
+}
+
+div.tooltip.hover {
+  'opacity': .9;
 }
 
 @keyframes App-logo-spin {
