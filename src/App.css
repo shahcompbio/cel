@@ -24,7 +24,7 @@
 
 circle {
   opacity: 0.9;
-  stroke: #3C3B3B;
+  stroke: #3c3b3b;
   stroke-opacity: 0;
 }
 
@@ -32,21 +32,32 @@ circle.hover {
   stroke-opacity: 0.9;
 }
 
-div.tooltip { 
-    position: absolute;     
-    text-align: center;
-    background: #ffffff;     
-    display: table;         
-    padding: 2px;       
-    font: 12px sans-serif;
-    opacity: 0;
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  background: #ffffff;
+  display: table;
+  padding: 2px;
+  font: 12px sans-serif;
+  opacity: 0;
 }
 
 div.tooltip.hover {
-  opacity: .9;
+  opacity: 0.9;
+}
+
+div.title {
+  position: absolute;
+  display: table;
+  padding: 2px;
+  font: sans-serif;
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
