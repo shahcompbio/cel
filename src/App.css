@@ -43,7 +43,7 @@ div.tooltip {
 }
 
 div.tooltip.hover {
-  'opacity': .9;
+  opacity: .9;
 }
 
 @keyframes App-logo-spin {

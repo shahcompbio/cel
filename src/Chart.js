@@ -23,7 +23,7 @@ class Chart extends Component {
           node = select(this.node), 
           width = node.attr('width'),
           height = node.attr('height'),
-          transitionDur = 200;
+          transitionDur = 500;
 
     // tooltip box
     const div = d3.select('body').append('div')
@@ -122,12 +122,11 @@ class Chart extends Component {
 
     function showDetail(d, i) {
       console.log(this)
-      d3.select(this)
-        .classed("hover", true)
-        .transition().duration(transitionDur)
+      d3.select(this).classed("hover", true)
+        .transition().duration(transitionDur);
       
-      div.transition().duration(transitionDur)
-        .classed("hover", true)
+      div.classed("hover", true)
+        .transition().duration(transitionDur);
 
       div.html('<b>sample</b>: ' +  d.data.sample + '<br/> <b>library</b>: ' + d.data.name + '<br /> <b>num_sublibraries</b>: ' + d.data.size)
         .style('left', (d3.event.pageX) + 'px')
@@ -136,12 +135,11 @@ class Chart extends Component {
 
 
     function hideDetail(d, i) {
-      d3.select(this)
-        .classed("hover", false)
-        .transition().duration(transitionDur)
+      d3.select(this).classed("hover", false)
+        .transition().duration(transitionDur);
 
-      div.transition().duration(transitionDur)
-        .classed("hover", false);
+      div.classed("hover", false)
+        .transition().duration(transitionDur);
     }
 
   }
