@@ -23,14 +23,14 @@
 }
 
 circle {
-  opacity: .5; 
+  opacity: 0.9;
+  stroke: #3C3B3B;
+  stroke-opacity: 0;
 }
 
-.leaf circle {
-  fill: #559fca;
-  stroke: #297eb7;
+circle.hover {
+  stroke-opacity: 0.9;
 }
-
 
 div.tooltip { 
     position: absolute;     

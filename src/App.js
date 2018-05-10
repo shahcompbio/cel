@@ -30,72 +30,31 @@ class App extends Component {
     }
 
 
-    function sortLibs(arr) {
-      let dict = {};
+    function processLibs(arr) {
+      let list = [];
+
       for (let i = 0; i < arr.length; i++) {
-        const patientId = arr[i].sample.anonymous_patient_id;
-        const sampleId = arr[i].sample.sample_id;
+        if (arr[i].num_sublibraries > 0) {
+          const libObj = {
+            "name": arr[i].pool_id, 
+            "sample": arr[i].sample.sample_id, 
+            "size": arr[i].num_sublibraries
+          }
 
-        if (!dict.hasOwnProperty(patientId)) {
-          dict[patientId] = [];
+        list.push(libObj);
         }
-
-        if (!dict[patientId].hasOwnProperty(sampleId)) {
-          dict[patientId][sampleId] = [];
-        }
-
-        const libObj = { "name": arr[i].pool_id, "num_sublibraries": arr[i].num_sublibraries, "level": "library", "size": 1};
-        dict[patientId][sampleId].push(libObj);  // push the object
       }
 
-      // console.log(dict)
-
-      return dict;
+      return list
     }
 
-
-    function hierarchize(arr) {
-      let sortedLibs = sortLibs(arr);
-
-      // now convert it into a format that d3 likes
-      // result must be an object representing the root node
-      const patientList = []; 
-
-      for (let patient in sortedLibs) {
-        const obj = {};
-        obj.name = patient;
-        obj.type = "patient";
-
-        // TODO: refactor this double for-loop
-        let samples = [];
-        for (let key in sortedLibs[patient]) {
-          const sampleObj = {"name": key, "children": sortedLibs[patient][key], "level": "sample"}
-          sampleObj.nLibs = sortedLibs[patient][key].length;
-          samples.push(sampleObj);
-        }
-
-        obj.children = samples;
-        obj.nSamples = obj.children.length;
-
-        patientList.push(obj);
-      }
-
-      // console.log(patientList)
-
-      return {"name": "samples", "children": patientList}
-    }
-
-
-  // const url = "http://colossus.bcgsc.ca/api/sample/?format=json";
-  const url = "http://colossus.bcgsc.ca/api/library/?format=json";
-  fetchUrl(url, [], (arr) => this.setState({data: hierarchize(arr)}));
+    const url = "http://colossus.bcgsc.ca/api/library/?format=json";
+    fetchUrl(url, [], (arr) => this.setState({data: processLibs(arr)}));
 
   }
 
 
   render() {
-    // console.log(this.state);
-    // <Chart data={this.state.data}/> 
     return (
       <div className="App">
         <Chart data={this.state.data}/>
