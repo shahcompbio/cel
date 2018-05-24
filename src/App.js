@@ -1,67 +1,43 @@
-import React, { Component } from 'react';
-import Chart from './Chart'
-import './App.css';
+import React, { Component } from "react";
+import getData from "./utils/dataFetcher.js";
+import CircleChart from "./circleChart/Chart.js";
+import LineChart from "./lineChart/Chart.js";
+import Counter from "./counter/Counter.js";
+import "./App.css";
 
 class App extends Component {
-
   constructor(props) {
-
     super(props);
-    this.state = {data: null};  // initial state
-
+    this.state = {
+      data: null
+    };
   }
 
   componentDidMount() {
-
-    async function fetchUrl(url, arr, callback) {
-      if (url == null) {
-        callback(arr);
-      } else {
-        fetch(url)
-        .then(function(response) {
-          return response.json();
-        })
-        .then(response => {
-          const jsonArr = Object.values(response.results);
-          // console.log(jsonArr)
-          fetchUrl(response.next, [...arr, ...jsonArr], callback);
-        })
-      }
-    }
-
-
-    function processLibs(arr) {
-      let list = [];
-
-      for (let i = 0; i < arr.length; i++) {
-        if (arr[i].num_sublibraries > 0) {
-          const libObj = {
-            "name": arr[i].pool_id, 
-            "sample": arr[i].sample.sample_id, 
-            "size": arr[i].num_sublibraries
-          }
-
-        list.push(libObj);
-        }
-      }
-
-      return list
-    }
-
-    const url = "http://colossus.bcgsc.ca/api/library/?format=json";
-    fetchUrl(url, [], (arr) => this.setState({data: processLibs(arr)}));
-
+    const dataCallback = data => {
+      this.setState({ data });
+    };
+    getData(dataCallback);
   }
 
-
   render() {
-    return (
+    return this.state.data === null ? null : (
       <div className="App">
-        <Chart data={this.state.data}/>
+        <LineChart stats={this.state.data.stats} />
+        <CircleChart
+          library={this.state.data.library}
+          samples={this.state.data.samples}
+          stats={this.state.data.stats}
+        />
+        <Counter
+          className="Counter"
+          library={this.state.data.library}
+          samples={this.state.data.samples}
+          stats={this.state.data.stats}
+        />
       </div>
     );
   }
 }
 
 export default App;
-

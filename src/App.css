@@ -52,7 +52,31 @@ div.title {
   padding: 2px;
   font: sans-serif;
 }
+.yAxis path {
+  stroke-width: 1px;
+}
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
 
+.area {
+  fill: lightsteelblue;
+}
+.svg-container {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* aspect ratio */
+  vertical-align: top;
+  overflow: hidden;
+}
+.svg-content-responsive {
+  display: inline-block;
+  position: absolute;
+  left: 0;
+}
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
