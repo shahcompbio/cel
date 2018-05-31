@@ -2,8 +2,6 @@ import React, { Component } from "react";
 import * as d3 from "d3";
 import { select } from "d3";
 class Counter extends Component {
-  static defaultProps = { width: 200, height: 200 };
-
   componentDidMount() {
     this.createChart();
   }
@@ -16,49 +14,95 @@ class Counter extends Component {
     const samples = this.props.samples,
       cellCount = this.props.stats.cellCount,
       libraryCount = this.props.stats.libraryCount,
+      libraryDates = this.props.stats.libraryDates,
       node = select(this.node),
-      width = node.attr("width"),
-      height = node.attr("height");
+      screenWidth = window.innerWidth,
+      screenHeight = window.innerHeight,
+      width = screenWidth * 0.9,
+      height = screenHeight * 0.8;
+
+    const margin = {
+      top: screenHeight / 15,
+      right: 10,
+      bottom: 5,
+      left: screenWidth / 15,
+      general: 10
+    };
+    const xScale = d3
+        .scaleTime()
+        .range([0, width])
+        .domain(
+          d3.extent(
+            libraryDates.reduce((result, hit) => [...result, hit.seq], [])
+          )
+        ),
+      yScale = d3
+        .scaleLinear()
+        .range([height, 0])
+        .domain([0, d3.max(libraryDates, d => d.accCellCount)]);
+
+    const line = d3
+      .line()
+      .x(d => xScale(d.seq))
+      .y(d => yScale(d.accCellCount))
+      .curve(d3.curveBasis);
 
     initializeTitle();
+    moveTitle();
 
     function initializeTitle() {
-      var count = [0];
-      var format = d3.format("~r");
-      var textTitle = function(count) {
-        return (
-          "<div class='titleCount'>\
-          <br/> <b>Samples</b>: " +
-          samples.length +
-          "<br/> <b>Libraries</b>: " +
-          libraryCount +
-          "<br /> <div class='cellCount'> \
-          <b>Cells Sequenced</b>: " +
-          count +
-          "</div></div>"
-        );
-      };
-
+      const counter = d3
+        .select(".Counter")
+        .attr("width", screenWidth)
+        .attr("height", screenHeight)
+        .classed("svg-container", true)
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr("viewBox", "0 0 " + screenWidth + " " + screenHeight + "")
+        .classed("svg-content-responsive", true)
+        .append("text")
+        .attr("class", "counter")
+        .attr("x", width - margin.left + "px")
+        .attr("y", margin.top + "px")
+        .text(d => setTitle(0));
+    }
+    function setTitle(count) {
+      return " Cells Sequenced: " + count;
+    }
+    function moveTitle() {
+      var formater = ",.3r";
       d3
         .select(".Counter")
-        .append("div")
-        .attr("left", 200)
-        .attr("top", 200)
-        .attr("width", width + "px")
-        .attr("height", height + "px")
-        .attr("position", "relative")
-        .attr("class", "counter")
-        .html(d => textTitle(d))
         .transition()
-        .duration(5000)
-        .ease(d3.easeLinear)
+        .delay(1000)
+        .duration(6000)
+        .ease(d3.easeSinInOut)
         .tween("text", function(d) {
-          var node = d3.select(".titleCount");
+          var node = d3.select(".counter");
           var i = d3.interpolate(0, cellCount);
           return function(t) {
-            return node.html(textTitle(Math.round(i(t) * 10000 / 10000)));
+            return node.html(
+              setTitle(d3.format(formater)(Math.round(i(t) * 10000 / 10000)))
+            );
           };
-        });
+        })
+        .transition()
+        .delay(1000)
+        .attr("opacity", 0);
+
+      /*  d3
+        .select(".Counter text")
+        .transition()
+        .duration(7000)
+        .ease(d3.easeSinInOut)
+        .attrTween("transform", function() {
+          return (
+            "translate(" +
+            this.points[inter].x +
+            "," +
+            this.points[inter].y +
+            ")"
+          );
+        });*/
     }
   }
 
@@ -68,7 +112,7 @@ class Counter extends Component {
     }
 
     return (
-      <div
+      <svg
         className="Counter"
         ref={node => (this.node = node)}
         width={this.props.width}

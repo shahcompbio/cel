@@ -23,7 +23,7 @@ class CircleChart extends Component {
       height = screenHeight * 0.8,
       transitionDur = 500;
 
-    d3
+    const mainSvg = d3
       .selectAll(".CircleChart")
       .attr("width", screenWidth)
       .attr("height", screenHeight)
@@ -34,9 +34,6 @@ class CircleChart extends Component {
 
     const tooltip = initializeTooltip();
     const color = initializeColors(samples.length);
-    const pointData = splitLineGraph(color);
-    drawSegements(pointData);
-    startLineAnimation();
 
     const pack = d3.pack().size([width, height]);
 
@@ -53,9 +50,14 @@ class CircleChart extends Component {
       }
     });
 
+    const pointData = splitLineGraph(color, updatedNodes);
+
     const updatedNodes = nodes.map((d, i) => {
       return { p1: pointData[i].p1, ...d };
     });
+
+    drawSegements(pointData);
+    startLineAnimation();
 
     d3
       .forceSimulation(updatedNodes)
@@ -83,7 +85,8 @@ class CircleChart extends Component {
           return d.y / 3;
         })
       )
-      .on("tick", ticked); // enables you to get the state of the layout when it has changed
+      .on("tick", ticked)
+      .on("end", startCircleAnimation);
 
     function clustering(alpha) {
       nodes.map(node => {
@@ -103,20 +106,46 @@ class CircleChart extends Component {
       });
     }
 
+    function startCircleAnimation() {
+      if (!d3.selectAll(".LineChart").classed("clicked")) {
+        d3
+          .selectAll("circle")
+          .transition()
+          .delay(7000)
+          .duration(200)
+          .style("opacity", 1)
+          .transition()
+          .delay(function(d, i) {
+            return i * 10 + 500;
+          })
+          .duration(1000)
+          .attr("cx", function(d, i) {
+            return d.x;
+          })
+          .attr("cy", function(d, i) {
+            return d.y;
+          })
+          .transition()
+          .delay(200)
+          .duration(1000)
+          .attr("r", function(d) {
+            return d.r;
+          });
+      }
+    }
     function ticked() {
       const tickedChart = node
         .selectAll("circle")
         .data(updatedNodes)
-        .attr("r", 1)
-        .style("fill", function(d) {
+        .attr("r", 2)
+        .style("fill", function(d, i) {
           return color(samples.indexOf(d.data.sample));
-        })
-        .on("mouseover", showDetail)
-        .on("mouseout", hideDetail);
+        });
 
       tickedChart
         .enter()
         .append("circle")
+        .attr("class", "circles")
         .merge(tickedChart)
         .attr("cx", function(d) {
           return d.p1.x;
@@ -128,32 +157,20 @@ class CircleChart extends Component {
           "transform",
           "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
         )
-        .style("opacity", 0)
-        .transition()
-        .delay(6000)
-        .style("opacity", 1)
-        .transition()
-        .delay(function(d, i) {
-          return i * 100;
-        })
-        .duration(100)
-        .attr("cx", function(d, i) {
-          return d.x;
-        })
-        .attr("cy", function(d, i) {
-          return d.y;
-        })
-        .transition()
-        .delay(200)
-        .duration(1000)
-        .attr("r", function(d) {
-          return d.r;
-        });
+        .style("opacity", 0);
 
+      tickedChart
+        .selectAll(".circles")
+        .on("mouseenter", function() {
+          console.log("show");
+          showDetail;
+        })
+        .on("mouseout", hideDetail);
       tickedChart.exit().remove();
     }
 
     function showDetail(d, i) {
+      console.log("showDetail");
       d3
         .select(this)
         .classed("hover", true)
@@ -228,57 +245,59 @@ class CircleChart extends Component {
       }
       return segementedLines;
     }
-    function drawSegements(segementedLines, mainSvg) {
-      var path = d3.line().curve(d3.curveCardinal);
-      var sep = d3
-        .selectAll(".LineChart")
-        .append("g")
-        .attr("class", "sep")
-        .attr("width", screenWidth)
-        .attr("height", screenHeight)
-        .attr(
-          "transform",
-          "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
-        );
 
-      sep
-        .selectAll(".sep")
-        .data(segementedLines)
-        .enter()
-        .append("line")
-        .attr("class", "sepLines")
-        .attr("stroke", function(d, i) {
-          return d.color;
-        })
-        .attr("stroke-width", "2px")
-        .attr("x1", function(d, i) {
-          return d.p1.x;
-        })
-        .attr("y1", function(d, i) {
-          return d.p1.y;
-        })
-        .attr("x2", function(d, i) {
-          return d.p2.x;
-        })
-        .attr("y2", function(d, i) {
-          return d.p2.y;
-        })
-        .style("opacity", 0);
+    function drawSegements(segementedLines) {
+      if (!d3.selectAll(".LineChart").classed("clicked")) {
+        var sep = d3
+          .selectAll(".LineChart")
+          .append("g")
+          .attr("class", "sep")
+          .attr("width", screenWidth)
+          .attr("height", screenHeight)
+          .attr(
+            "transform",
+            "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
+          );
+
+        sep
+          .selectAll(".sep")
+          .data(segementedLines)
+          .enter()
+          .append("line")
+          .attr("class", "sepLines")
+          .attr("stroke", function(d, i) {
+            return d.color;
+          })
+          .attr("stroke-width", "5px")
+          .attr("x1", function(d, i) {
+            return d.p1.x;
+          })
+          .attr("y1", function(d, i) {
+            return d.p1.y;
+          })
+          .attr("x2", function(d, i) {
+            return d.p2.x;
+          })
+          .attr("y2", function(d, i) {
+            return d.p2.y;
+          })
+          .style("opacity", 0);
+      }
     }
     function startLineAnimation() {
       d3
         .selectAll(".sepLines")
         .transition()
-        .delay(5500)
+        .delay(8000)
         .style("opacity", 1)
         .transition()
-        .delay(500)
-        .duration(200)
+        .delay(2000)
+        .duration(2000)
         .attr("x2", function(d, i) {
-          return d.p1.x + 1;
+          return d.p1.x;
         })
         .attr("y2", function(d, i) {
-          return d.p1.y + 1;
+          return d.p1.y;
         })
         .transition()
         .style("opacity", 0);

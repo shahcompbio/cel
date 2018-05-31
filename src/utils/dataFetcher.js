@@ -14,7 +14,6 @@ const getData = callback => {
         libraryDates: addLibraryDates(libraries, samples)
       }
     };
-    console.log(data.stats.libraryDates);
     callback(data);
   });
 };
@@ -96,7 +95,7 @@ function nestedNotation(data) {
       return d.size;
     })
     .sort(function(a, b) {
-      return a.value - b.value;
+      return a.data.seq - b.data.seq;
     });
 }
 
