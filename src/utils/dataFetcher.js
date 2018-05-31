@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 
 const getData = callback => {
-  const url = "http://colossus.bcgsc.ca/api/library/?format=json";
+  const url = "";
   fetchUrl(url, [], arr => {
     const libraries = processLibs(arr);
     const samples = sampleFilter(libraries);

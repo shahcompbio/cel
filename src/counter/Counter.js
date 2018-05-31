@@ -88,21 +88,6 @@ class Counter extends Component {
         .transition()
         .delay(1000)
         .attr("opacity", 0);
-
-      /*  d3
-        .select(".Counter text")
-        .transition()
-        .duration(7000)
-        .ease(d3.easeSinInOut)
-        .attrTween("transform", function() {
-          return (
-            "translate(" +
-            this.points[inter].x +
-            "," +
-            this.points[inter].y +
-            ")"
-          );
-        });*/
     }
   }
 

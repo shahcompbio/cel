@@ -43,14 +43,14 @@ class LineChart extends Component {
         .range([height, 0])
         .domain([0, d3.max(libraryDates, d => d.accCellCount)]);
 
-    //  initializeEndClick();
+    initializeEndClick();
     const mainSvg = initializeSvg();
     initializeAxis(mainSvg);
     appendClipPath(mainSvg);
     appendLine(mainSvg);
     hideChart();
 
-    /*    function initializeEndClick() {
+    function initializeEndClick() {
       d3.select("body").on("mousedown", function(d) {
         if (d3.event.which == 1) {
           d3.selectAll("*").transition();
@@ -61,41 +61,14 @@ class LineChart extends Component {
             ".CircleChart circle, .CircleChart .sepLines, .CircleChart .sep"
           );
 
-          //chart.transition().style("opacity", 0);
           chart
             .interrupt()
-            .transition()
-            .style("opacity", 0);
-          d3.select(".LineChart").classed("clicked", true);
-          //    .on("end", function() {
-          //      chart.selectAll("*").remove();
-          //    });
-
-          circleChart
-            .interrupt()
-            .transition()
-            .style("opacity", 0);
-          //.on("end", function() {
-          //    circleChart.selectAll("*").remove();
-          //    });
-          d3
-            .selectAll("circle")
-            .transition()
-            .style("opacity", 1)
-            .transition()
-            .attr("cx", function(d, i) {
-              return d.x;
-            })
-            .attr("cy", function(d, i) {
-              return d.y;
-            })
-            .transition()
-            .attr("r", function(d) {
-              return d.r;
-            });
+            .style("opacity", 0)
+            .classed("clicked", true);
         }
       });
-    }*/
+    }
+
     function initializeSvg() {
       return d3
         .select("svg")
@@ -188,12 +161,6 @@ class LineChart extends Component {
         .transition()
         .delay(8000)
         .style("opacity", 0);
-
-      /*  d3
-        .selectAll(".LineChart .yAxis")
-        .transition()
-        .delay(10000)
-        .style("opacity", 0);*/
     }
   }
 

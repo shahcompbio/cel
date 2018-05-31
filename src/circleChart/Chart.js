@@ -23,6 +23,15 @@ class CircleChart extends Component {
       height = screenHeight * 0.8,
       transitionDur = 500;
 
+    var isClicked = false;
+
+    const MutationObserver =
+      window.MutationObserver ||
+      window.WebKitMutationObserver ||
+      window.MozMutationObserver;
+
+    var mutationListener = setMutationListener();
+
     const mainSvg = d3
       .selectAll(".CircleChart")
       .attr("width", screenWidth)
@@ -30,7 +39,8 @@ class CircleChart extends Component {
       .classed("svg-container", true)
       .attr("preserveAspectRatio", "xMinYMin meet")
       .attr("viewBox", "0 0 " + screenWidth + " " + screenHeight + "")
-      .classed("svg-content-responsive", true);
+      .classed("svg-content-responsive", true)
+      .attr("pointer-events", "all");
 
     const tooltip = initializeTooltip();
     const color = initializeColors(samples.length);
@@ -86,7 +96,33 @@ class CircleChart extends Component {
         })
       )
       .on("tick", ticked)
-      .on("end", startCircleAnimation);
+      .on("end", function() {
+        if (!isClicked) {
+          mutationListener.disconnect();
+          startCircleAnimation();
+        }
+      });
+
+    function setMutationListener() {
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (
+            mutation.type == "attributes" &&
+            mutation.target.classList.value.indexOf("clicked") != -1
+          ) {
+            isClicked = true;
+            goToEndAnimation();
+            observer.disconnect();
+          }
+        });
+      });
+
+      var lineChart = d3.selectAll(".LineChart .xAxis").node();
+      observer.observe(lineChart, {
+        attributes: true
+      });
+      return observer;
+    }
 
     function clustering(alpha) {
       nodes.map(node => {
@@ -105,39 +141,73 @@ class CircleChart extends Component {
         }
       });
     }
-
+    function removeExtraContent() {
+      d3
+        .selectAll(".LineChart, .Counter")
+        .transition()
+        .remove();
+    }
+    function goToEndAnimation() {
+      d3
+        .selectAll("circle")
+        .transition()
+        .style("opacity", 1)
+        .transition()
+        .attr("cx", function(d, i) {
+          return d.x;
+        })
+        .attr("cy", function(d, i) {
+          return d.y;
+        })
+        .transition()
+        .duration(1000)
+        .attr("r", function(d) {
+          return d.r;
+        })
+        .on("end", function() {
+          d3
+            .select(this)
+            .on("mouseover", showDetail)
+            .on("mouseout", hideDetail);
+          removeExtraContent();
+        });
+    }
     function startCircleAnimation() {
-      if (!d3.selectAll(".LineChart").classed("clicked")) {
-        d3
-          .selectAll("circle")
-          .transition()
-          .delay(7000)
-          .duration(200)
-          .style("opacity", 1)
-          .transition()
-          .delay(function(d, i) {
-            return i * 10 + 500;
-          })
-          .duration(1000)
-          .attr("cx", function(d, i) {
-            return d.x;
-          })
-          .attr("cy", function(d, i) {
-            return d.y;
-          })
-          .transition()
-          .delay(200)
-          .duration(1000)
-          .attr("r", function(d) {
-            return d.r;
-          });
-      }
+      d3
+        .selectAll("circle")
+        .transition()
+        .delay(7000)
+        .duration(200)
+        .style("opacity", 1)
+        .transition()
+        .delay(function(d, i) {
+          return i * 10 + 500;
+        })
+        .duration(1000)
+        .attr("cx", function(d, i) {
+          return d.x;
+        })
+        .attr("cy", function(d, i) {
+          return d.y;
+        })
+        .transition()
+        .delay(200)
+        .duration(1000)
+        .attr("r", function(d) {
+          return d.r;
+        })
+        .on("end", function() {
+          d3
+            .select(this)
+            .on("mouseover", showDetail)
+            .on("mouseout", hideDetail);
+          removeExtraContent();
+        });
     }
     function ticked() {
       const tickedChart = node
         .selectAll("circle")
         .data(updatedNodes)
-        .attr("r", 2)
         .style("fill", function(d, i) {
           return color(samples.indexOf(d.data.sample));
         });
@@ -147,30 +217,31 @@ class CircleChart extends Component {
         .append("circle")
         .attr("class", "circles")
         .merge(tickedChart)
+        .attr("r", function(d) {
+          return isClicked ? d.r : 2;
+        })
         .attr("cx", function(d) {
-          return d.p1.x;
+          return isClicked ? d.x : d.p1.x;
         })
         .attr("cy", function(d) {
-          return d.p1.y;
+          return isClicked ? d.y : d.p1.y;
         })
         .attr(
           "transform",
           "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
         )
-        .style("opacity", 0);
+        .style("opacity", function() {
+          if (isClicked) {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
 
-      tickedChart
-        .selectAll(".circles")
-        .on("mouseenter", function() {
-          console.log("show");
-          showDetail;
-        })
-        .on("mouseout", hideDetail);
       tickedChart.exit().remove();
     }
 
     function showDetail(d, i) {
-      console.log("showDetail");
       d3
         .select(this)
         .classed("hover", true)
@@ -247,42 +318,40 @@ class CircleChart extends Component {
     }
 
     function drawSegements(segementedLines) {
-      if (!d3.selectAll(".LineChart").classed("clicked")) {
-        var sep = d3
-          .selectAll(".LineChart")
-          .append("g")
-          .attr("class", "sep")
-          .attr("width", screenWidth)
-          .attr("height", screenHeight)
-          .attr(
-            "transform",
-            "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
-          );
+      var sep = d3
+        .selectAll(".CircleChart")
+        .append("g")
+        .attr("class", "sep")
+        .attr("width", screenWidth)
+        .attr("height", screenHeight)
+        .attr(
+          "transform",
+          "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
+        );
 
-        sep
-          .selectAll(".sep")
-          .data(segementedLines)
-          .enter()
-          .append("line")
-          .attr("class", "sepLines")
-          .attr("stroke", function(d, i) {
-            return d.color;
-          })
-          .attr("stroke-width", "5px")
-          .attr("x1", function(d, i) {
-            return d.p1.x;
-          })
-          .attr("y1", function(d, i) {
-            return d.p1.y;
-          })
-          .attr("x2", function(d, i) {
-            return d.p2.x;
-          })
-          .attr("y2", function(d, i) {
-            return d.p2.y;
-          })
-          .style("opacity", 0);
-      }
+      sep
+        .selectAll(".sep")
+        .data(segementedLines)
+        .enter()
+        .append("line")
+        .attr("class", "sepLines")
+        .attr("stroke", function(d, i) {
+          return d.color;
+        })
+        .attr("stroke-width", "5px")
+        .attr("x1", function(d, i) {
+          return d.p1.x;
+        })
+        .attr("y1", function(d, i) {
+          return d.p1.y;
+        })
+        .attr("x2", function(d, i) {
+          return d.p2.x;
+        })
+        .attr("y2", function(d, i) {
+          return d.p2.y;
+        })
+        .style("opacity", 0);
     }
     function startLineAnimation() {
       d3
