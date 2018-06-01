@@ -37,6 +37,7 @@ function processLibs(data) {
     .filter(hit => hit.dlpsequencing_set.length > 0)
     .filter(hit => hit.num_sublibraries > 0)
     .map(filterData => ({
+      id: filterData.id,
       library: filterData.pool_id,
       sample: filterData.sample.sample_id,
       size: filterData.num_sublibraries,

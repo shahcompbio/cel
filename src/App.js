@@ -1,8 +1,7 @@
 import React, { Component } from "react";
 import getData from "./utils/dataFetcher.js";
-import CircleChart from "./circleChart/Chart.js";
-import LineChart from "./lineChart/Chart.js";
 import Counter from "./counter/Counter.js";
+import Chart from "./Chart/Chart.js";
 import "./App.css";
 
 class App extends Component {
@@ -23,11 +22,10 @@ class App extends Component {
   render() {
     return this.state.data === null ? null : (
       <div className="App">
-        <LineChart stats={this.state.data.stats} />
-        <CircleChart
+        <Chart
+          stats={this.state.data.stats}
           library={this.state.data.library}
           samples={this.state.data.samples}
-          stats={this.state.data.stats}
         />
         <Counter
           className="Counter"

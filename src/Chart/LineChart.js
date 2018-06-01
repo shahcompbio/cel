@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import * as moment from "moment";
 import { select } from "d3";
 import "d3-transition";
+
 class LineChart extends Component {
   componentDidMount() {
     this.createChart();
@@ -11,50 +12,29 @@ class LineChart extends Component {
   componentDidUpdate() {
     this.createChart();
   }
-  yj;
+
   createChart() {
+    const libraryDates = this.props.stats.libraryDates,
+      cellCount = this.props.stats.cellCount,
+      node = select(this.node),
+      screenWidth = this.props.windowDim.screenWidth,
+      screenHeight = this.props.windowDim.screenHeight,
+      width = this.props.windowDim.width,
+      height = this.props.windowDim.height,
+      margin = this.props.margin,
+      xScale = this.props.xScale,
+      yScale = this.props.yScale,
+      line = this.props.line,
+      initializeEndClick = this.props.initializeEndClick.bind(this),
+      initializeSvg = this.props.initializeSvg.bind(this);
+
     initializeEndClick();
-    const mainSvg = initializeSvg();
+    const mainSvg = initializeSvg(".LineChart");
     initializeAxis(mainSvg);
     appendClipPath(mainSvg);
     appendLine(mainSvg);
     hideChart();
 
-    function initializeEndClick() {
-      d3.select("no").on("mousedown", function(d) {
-        if (d3.event.which == 1) {
-          d3.selectAll("*").transition();
-          var chart = d3.selectAll(
-            ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter"
-          );
-          var circleChart = d3.selectAll(
-            ".CircleChart circle, .CircleChart .sepLines, .CircleChart .sep"
-          );
-
-          chart
-            .interrupt()
-            .transition()
-            .style("opacity", 0);
-
-          d3.select(".LineChart").classed("clicked", true);
-
-          circleChart
-            .interrupt()
-            .transition()
-            .style("opacity", 0);
-        }
-      });
-    }
-    function initializeSvg() {
-      return d3
-        .select("svg")
-        .attr("width", screenWidth)
-        .attr("height", screenHeight)
-        .classed("svg-container", true)
-        .attr("preserveAspectRatio", "xMinYMin meet")
-        .attr("viewBox", "0 0 " + screenWidth + " " + screenHeight + "")
-        .classed("svg-content-responsive", true);
-    }
     function appendClipPath(mainSvg) {
       mainSvg
         .append("clipPath")
@@ -63,6 +43,7 @@ class LineChart extends Component {
         .attr("width", 0)
         .attr("height", height);
     }
+
     function initializeAxis(mainSvg) {
       mainSvg
         .append("g")
@@ -71,7 +52,12 @@ class LineChart extends Component {
           "transform",
           "translate(" + margin.left + "," + (height + margin.top) + ")"
         )
-        .call(d3.axisBottom(xScale));
+        .call(
+          d3
+            .axisBottom(xScale)
+            .tickFormat(d3.timeFormat("%b %Y"))
+            .ticks(20)
+        );
 
       mainSvg
         .append("text")
@@ -81,6 +67,7 @@ class LineChart extends Component {
         )
         .style("text-anchor", "middle")
         .text("Date");
+
       mainSvg
         .append("g")
         .attr("class", "yAxis")
@@ -91,6 +78,7 @@ class LineChart extends Component {
             .tickSize(-width)
             .ticks(10)
         );
+
       mainSvg
         .append("text")
         .attr("text-anchor", "middle")
@@ -102,12 +90,6 @@ class LineChart extends Component {
     }
 
     function appendLine(mainSvg) {
-      var line = d3
-        .line()
-        .x(d => xScale(d.seq))
-        .y(d => yScale(d.accCellCount))
-        .curve(d3.curveBasis);
-
       mainSvg
         .append("path")
         .datum(libraryDates)
@@ -127,16 +109,10 @@ class LineChart extends Component {
     function hideChart(isEndClick) {
       d3
         .selectAll(
-          ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text"
+          ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis"
         )
         .transition()
         .delay(8000)
-        .style("opacity", 0);
-
-      d3
-        .selectAll(".LineChart .yAxis")
-        .transition()
-        .delay(10000)
         .style("opacity", 0);
     }
   }

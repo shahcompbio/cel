@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
 import { select } from "d3";
+
 class CircleChart extends Component {
   componentDidMount() {
     this.createChart();
@@ -17,13 +18,20 @@ class CircleChart extends Component {
       libraryCount = this.props.stats.libraryCount,
       libraryDates = this.props.stats.libraryDates,
       node = select(this.node),
-      screenWidth = window.innerWidth,
-      screenHeight = window.innerHeight,
-      width = screenWidth * 0.9,
-      height = screenHeight * 0.8,
-      transitionDur = 500;
+      screenWidth = this.props.windowDim.screenWidth,
+      screenHeight = this.props.windowDim.screenHeight,
+      width = this.props.windowDim.width,
+      height = this.props.windowDim.height,
+      margin = this.props.margin,
+      xScale = this.props.xScale,
+      yScale = this.props.yScale,
+      line = this.props.line,
+      initializeEndClick = this.props.initializeEndClick.bind(this),
+      initializeSvg = this.props.initializeSvg.bind(this),
+      transitionDur = 500,
+      colossusUrl = "";
 
-    var isClicked = false;
+    var endAnimationFlag = false;
 
     const MutationObserver =
       window.MutationObserver ||
@@ -32,15 +40,7 @@ class CircleChart extends Component {
 
     var mutationListener = setMutationListener();
 
-    const mainSvg = d3
-      .selectAll(".CircleChart")
-      .attr("width", screenWidth)
-      .attr("height", screenHeight)
-      .classed("svg-container", true)
-      .attr("preserveAspectRatio", "xMinYMin meet")
-      .attr("viewBox", "0 0 " + screenWidth + " " + screenHeight + "")
-      .classed("svg-content-responsive", true)
-      .attr("pointer-events", "all");
+    const mainSvg = initializeSvg(".CircleChart");
 
     const tooltip = initializeTooltip();
     const color = initializeColors(samples.length);
@@ -49,7 +49,7 @@ class CircleChart extends Component {
 
     const nodes = pack(libraries)
       .descendants()
-      .filter(d => d.depth === 2); // only retain nodes of max depth
+      .filter(d => d.depth === 2);
 
     const clusters = new Array(samples.length);
 
@@ -60,7 +60,11 @@ class CircleChart extends Component {
       }
     });
 
-    const pointData = splitLineGraph(color, updatedNodes);
+    nodes.sort(function(a, b) {
+      return a.data.seq - b.data.seq;
+    });
+
+    const pointData = splitLineGraph(color, nodes);
 
     const updatedNodes = nodes.map((d, i) => {
       return { p1: pointData[i].p1, ...d };
@@ -68,6 +72,7 @@ class CircleChart extends Component {
 
     drawSegements(pointData);
     startLineAnimation();
+    appendSortToggle();
 
     d3
       .forceSimulation(updatedNodes)
@@ -97,11 +102,52 @@ class CircleChart extends Component {
       )
       .on("tick", ticked)
       .on("end", function() {
-        if (!isClicked) {
+        if (!endAnimationFlag) {
           mutationListener.disconnect();
           startCircleAnimation();
         }
       });
+
+    function appendSortToggle() {
+      d3
+        .select(".App")
+        .append("div")
+        .style("opacity", 0)
+        .style("padding-left", margin.left + "px")
+        .style("padding-top", height / 2 + "px")
+        .style("float", "left")
+        .classed("toggles", true)
+        .html(
+          "<text>Order By Date</text><br>\
+          <label class='switch'> \
+            <input type='checkbox'>\
+              <span class='slider round'></span>\
+          </label>\
+        "
+        )
+        .select(".slider")
+        .on("click", sortByDate);
+    }
+
+    function sortByDate() {
+      if (!d3.select(this).classed("date-toggled")) {
+        d3
+          .selectAll("circle")
+          .transition()
+          .attr("cx", function(d, i) {
+            return d.p1.x;
+          })
+          .attr("cy", function(d, i) {
+            return 300;
+          })
+          .transition();
+      } else {
+        goToEndAnimation();
+      }
+      d3
+        .select(this)
+        .classed("date-toggled", !d3.select(this).classed("date-toggled"));
+    }
 
     function setMutationListener() {
       var observer = new MutationObserver(function(mutations) {
@@ -110,7 +156,7 @@ class CircleChart extends Component {
             mutation.type == "attributes" &&
             mutation.target.classList.value.indexOf("clicked") != -1
           ) {
-            isClicked = true;
+            endAnimationFlag = true;
             goToEndAnimation();
             observer.disconnect();
           }
@@ -141,11 +187,14 @@ class CircleChart extends Component {
         }
       });
     }
-    function removeExtraContent() {
+    function removeLineChartContent() {
       d3
         .selectAll(".LineChart, .Counter")
         .transition()
         .remove();
+    }
+    function showSortToggle() {
+      d3.selectAll(".toggles").style("opacity", 1);
     }
     function goToEndAnimation() {
       d3
@@ -169,7 +218,8 @@ class CircleChart extends Component {
             .select(this)
             .on("mouseover", showDetail)
             .on("mouseout", hideDetail);
-          removeExtraContent();
+          removeLineChartContent();
+          showSortToggle();
         });
     }
     function startCircleAnimation() {
@@ -201,7 +251,8 @@ class CircleChart extends Component {
             .select(this)
             .on("mouseover", showDetail)
             .on("mouseout", hideDetail);
-          removeExtraContent();
+          removeLineChartContent();
+          showSortToggle();
         });
     }
     function ticked() {
@@ -214,24 +265,32 @@ class CircleChart extends Component {
 
       tickedChart
         .enter()
+        .append("a")
+        .attr("href", function(d) {
+          return colossusUrl + d.data.id;
+        })
+        .attr("target", "_blank")
         .append("circle")
         .attr("class", "circles")
+        .attr("id", function(d) {
+          return d.data.id;
+        })
         .merge(tickedChart)
         .attr("r", function(d) {
-          return isClicked ? d.r : 2;
+          return endAnimationFlag ? d.r : 2;
         })
         .attr("cx", function(d) {
-          return isClicked ? d.x : d.p1.x;
+          return endAnimationFlag ? d.x : d.p1.x;
         })
         .attr("cy", function(d) {
-          return isClicked ? d.y : d.p1.y;
+          return endAnimationFlag ? d.y : d.p1.y;
         })
         .attr(
           "transform",
           "translate(" + screenWidth / 15 + "," + screenHeight / 15 + ")"
         )
         .style("opacity", function() {
-          if (isClicked) {
+          if (endAnimationFlag) {
             return 1;
           } else {
             return 0;
@@ -293,15 +352,18 @@ class CircleChart extends Component {
         .domain([0, len])
         .interpolator(d3.interpolateRainbow);
     }
-    function splitLineGraph(color) {
+
+    function splitLineGraph(color, updatedNodes) {
       var linePath = d3.select(".line").node();
       var pathLength = linePath.getTotalLength();
       var segementedLines = [];
+
       for (var i = 0; i < libraryCount; i++) {
         var p1 = linePath.getPointAtLength(pathLength * (i / libraryCount));
         var p2 = linePath.getPointAtLength(
           pathLength * ((i + 1) / libraryCount)
         );
+
         var angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
         var libName = libraryDates[i].library;
         var colour = color(samples.indexOf(libraryDates[i].sample));
@@ -314,6 +376,7 @@ class CircleChart extends Component {
           color: colour
         });
       }
+
       return segementedLines;
     }
 
@@ -353,6 +416,7 @@ class CircleChart extends Component {
         })
         .style("opacity", 0);
     }
+
     function startLineAnimation() {
       d3
         .selectAll(".sepLines")
