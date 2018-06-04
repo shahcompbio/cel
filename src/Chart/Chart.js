@@ -23,14 +23,24 @@ const Chart = ({ stats, library, samples }) => {
     general: 10
   };
 
+  const xScaleDomain = d3.extent(
+    libraryDates
+      .reduce((result, hit) => [...result, hit.seq], [])
+      .map((date, i) => {
+        if (i == 0) {
+          date.setDate(1);
+        }
+        if (i == libraryDates.length - 1) {
+          date.setDate(30);
+        }
+        return date;
+      })
+  );
+
   const xScale = d3
       .scaleTime()
       .range([0, windowDim.width])
-      .domain(
-        d3.extent(
-          libraryDates.reduce((result, hit) => [...result, hit.seq], [])
-        )
-      ),
+      .domain(xScaleDomain),
     yScale = d3
       .scaleLinear()
       .range([windowDim.height, 0])
@@ -41,18 +51,16 @@ const Chart = ({ stats, library, samples }) => {
       .y(d => yScale(d.accCellCount))
       .curve(d3.curveBasis);
 
-  const lineChartClasses =
-    ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter";
-
-  function initializeEndClick() {
+  function initializeEndClick(chart) {
     d3.select("body").on("mousedown", function(d) {
       if (d3.event.which == 1) {
         d3.selectAll("*").transition();
         d3
-          .selectAll(lineChartClasses)
+          .selectAll(chart)
           .interrupt()
           .style("opacity", 0)
           .classed("clicked", true);
+        return true;
       }
     });
   }
@@ -70,18 +78,81 @@ const Chart = ({ stats, library, samples }) => {
       )
       .classed("svg-content-responsive", true);
   }
+  function initializeXaxis(mainSvg) {
+    mainSvg
+      .append("g")
+      .attr("class", "xAxis")
+      .attr(
+        "transform",
+        "translate(" + margin.left + "," + (windowDim.height + margin.top) + ")"
+      )
+      .call(
+        d3
+          .axisBottom(xScale)
+          .tickFormat(d3.timeFormat("%b %Y"))
+          .ticks(d3.timeMonth)
+      );
 
+    mainSvg
+      .append("text")
+      .attr("class", "xAxis")
+      .attr(
+        "transform",
+        "translate(" +
+          windowDim.width / 2 +
+          " ," +
+          (windowDim.height + margin.top * 2) +
+          ")"
+      )
+      .style("text-anchor", "middle")
+      .text("Date");
+  }
+  function initializeYaxis(mainSvg) {
+    mainSvg
+      .append("g")
+      .attr("class", "yAxis")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(
+        d3
+          .axisLeft(yScale)
+          .tickSize(-windowDim.width)
+          .ticks(10)
+      );
+
+    mainSvg
+      .append("text")
+      .attr("class", "yAxis")
+      .attr("text-anchor", "middle")
+      .attr(
+        "transform",
+        "translate(" +
+          margin.left / 2 +
+          "," +
+          windowDim.height / 2 +
+          ")rotate(-90)"
+      )
+      .text("Cells Sequenced");
+  }
+
+  function hideElement(element) {
+    d3.selectAll(element).style("opacity", 0);
+  }
+  function showElement(element) {
+    d3.selectAll(element).style("opacity", 1);
+  }
   return (
     <div>
       <LineChart
         stats={stats}
         margin={margin}
         windowDim={windowDim}
-        xScale={xScale}
-        yScale={yScale}
         line={line}
         initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
+        initializeYaxis={initializeYaxis}
+        initializeXaxis={initializeXaxis}
+        hideElement={hideElement}
+        showElement={showElement}
       />
       <CircleChart
         library={library}
@@ -90,10 +161,12 @@ const Chart = ({ stats, library, samples }) => {
         margin={margin}
         windowDim={windowDim}
         xScale={xScale}
-        yScale={yScale}
         line={line}
         initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
+        initializeXaxis={initializeXaxis}
+        hideElement={hideElement}
+        showElement={showElement}
       />
     </div>
   );

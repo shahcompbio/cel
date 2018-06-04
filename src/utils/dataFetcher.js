@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 
 const getData = callback => {
-  const url = "";
+  const url = "http://colossus.bcgsc.ca/api/library/?format=json";
   fetchUrl(url, [], arr => {
     const libraries = processLibs(arr);
     const samples = sampleFilter(libraries);
@@ -11,6 +11,7 @@ const getData = callback => {
       stats: {
         cellCount: getCellCount(libraries),
         libraryCount: libraries.length,
+        libraryMonthRange: getMonthRange(libraries),
         libraryDates: addLibraryDates(libraries, samples)
       }
     };
@@ -69,14 +70,23 @@ function addLibraryDates(data, samples) {
       ],
       []
     );
-  const dummyDate = libraryDates[libraryDates.length - 1];
-  dummyDate.seq = getDayAfterLastSeq(libraryDates[libraryDates.length - 1]);
-  return [...libraryDates, dummyDate];
+
+  return libraryDates;
 }
-function getDayAfterLastSeq(lastSeqDay) {
-  var day = lastSeqDay.seq;
-  day.setTime(day.getTime() + 48 * 60 * 60 * 1000);
-  return day;
+
+function getMonthRange(data) {
+  data.sort(function(a, b) {
+    return a.seq - b.seq;
+  });
+  return (
+    12 *
+      (data[data.length - 1].seq.getFullYear() -
+        1 -
+        data[0].seq.getFullYear()) +
+    12 -
+    data[0].seq.getMonth() +
+    data[data.length - 1].seq.getMonth()
+  );
 }
 
 function getCellCount(data) {

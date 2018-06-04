@@ -17,20 +17,24 @@ class LineChart extends Component {
     const libraryDates = this.props.stats.libraryDates,
       cellCount = this.props.stats.cellCount,
       node = select(this.node),
-      screenWidth = this.props.windowDim.screenWidth,
-      screenHeight = this.props.windowDim.screenHeight,
-      width = this.props.windowDim.width,
-      height = this.props.windowDim.height,
+      dim = this.props.windowDim,
       margin = this.props.margin,
-      xScale = this.props.xScale,
-      yScale = this.props.yScale,
       line = this.props.line,
       initializeEndClick = this.props.initializeEndClick.bind(this),
-      initializeSvg = this.props.initializeSvg.bind(this);
+      initializeSvg = this.props.initializeSvg.bind(this),
+      initializeYaxis = this.props.initializeYaxis.bind(this),
+      initializeXaxis = this.props.initializeXaxis.bind(this),
+      hideElement = this.props.hideElement.bind(this),
+      showElement = this.props.showElement.bind(this);
 
-    initializeEndClick();
+    const lineChartClasses =
+      ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter";
+    initializeEndClick(lineChartClasses);
+
     const mainSvg = initializeSvg(".LineChart");
-    initializeAxis(mainSvg);
+
+    initializeXaxis(mainSvg);
+    initializeYaxis(mainSvg);
     appendClipPath(mainSvg);
     appendLine(mainSvg);
     hideChart();
@@ -41,52 +45,7 @@ class LineChart extends Component {
         .attr("id", "rectClip")
         .append("rect")
         .attr("width", 0)
-        .attr("height", height);
-    }
-
-    function initializeAxis(mainSvg) {
-      mainSvg
-        .append("g")
-        .attr("class", "xAxis")
-        .attr(
-          "transform",
-          "translate(" + margin.left + "," + (height + margin.top) + ")"
-        )
-        .call(
-          d3
-            .axisBottom(xScale)
-            .tickFormat(d3.timeFormat("%b %Y"))
-            .ticks(20)
-        );
-
-      mainSvg
-        .append("text")
-        .attr(
-          "transform",
-          "translate(" + width / 2 + " ," + (height + margin.top * 2) + ")"
-        )
-        .style("text-anchor", "middle")
-        .text("Date");
-
-      mainSvg
-        .append("g")
-        .attr("class", "yAxis")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-        .call(
-          d3
-            .axisLeft(yScale)
-            .tickSize(-width)
-            .ticks(10)
-        );
-
-      mainSvg
-        .append("text")
-        .attr("text-anchor", "middle")
-        .attr(
-          "transform",
-          "translate(" + margin.left / 2 + "," + height / 2 + ")rotate(-90)"
-        )
-        .text("Cells Sequenced");
+        .attr("height", dim.height);
     }
 
     function appendLine(mainSvg) {
@@ -103,7 +62,7 @@ class LineChart extends Component {
         .transition()
         .duration(7000)
         .ease(d3.easeSinInOut)
-        .attr("width", width);
+        .attr("width", dim.width);
     }
 
     function hideChart(isEndClick) {
@@ -126,8 +85,8 @@ class LineChart extends Component {
       <svg
         className="LineChart"
         ref={node => (this.node = node)}
-        width={this.props.width}
-        height={this.props.height}
+        width={this.props.windowDim.width}
+        height={this.props.windowDim.height}
       />
     );
   }
