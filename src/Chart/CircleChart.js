@@ -19,13 +19,10 @@ class CircleChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       xScale = this.props.xScale,
-      line = this.props.line,
-      initializeEndClick = this.props.initializeEndClick.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this),
       hideElement = this.props.hideElement.bind(this),
       showElement = this.props.showElement.bind(this),
-      libraryMonthRange = this.props.stats.libraryMonthRange,
       colossusUrl = "http://colossus.bcgsc.ca/dlp/library/";
 
     var endAnimationFlag = false;
@@ -164,9 +161,9 @@ class CircleChart extends Component {
           })
           .attr("cy", function(d, i) {
             var previous = d3.selectAll("circle").data()[i - 1];
-            if (previous == undefined) {
+            if (previous === undefined) {
               return baseY;
-            } else if (previous.data.seq.getMonth() == d.data.seq.getMonth()) {
+            } else if (previous.data.seq.getMonth() === d.data.seq.getMonth()) {
               return baseY - heightSpacer * ++vertPos;
             } else {
               vertPos = 0;
@@ -187,8 +184,8 @@ class CircleChart extends Component {
       var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (
-            mutation.type == "attributes" &&
-            mutation.target.classList.value.indexOf("clicked") != -1
+            mutation.type === "attributes" &&
+            mutation.target.classList.value.indexOf("clicked") !== -1
           ) {
             endAnimationFlag = true;
             goToEndAnimation();
@@ -205,7 +202,7 @@ class CircleChart extends Component {
     }
 
     function clustering(alpha) {
-      nodes.map(node => {
+      return nodes.map(node => {
         const cluster = clusters[samples.indexOf(node.data.sample)];
         if (cluster === node) return;
         var x = node.x - cluster.x,

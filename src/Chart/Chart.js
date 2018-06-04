@@ -7,7 +7,7 @@ import LineChart from "./LineChart.js";
 import CircleChart from "./CircleChart.js";
 
 const Chart = ({ stats, library, samples }) => {
-  const libraryDates = stats.libraryDates;
+  //Chart dimensions according to screen size
   const windowDim = {
     screenWidth: window.innerWidth,
     screenHeight: window.innerHeight,
@@ -23,48 +23,58 @@ const Chart = ({ stats, library, samples }) => {
     general: 10
   };
 
-  const xScaleDomain = d3.extent(
-    libraryDates
-      .reduce((result, hit) => [...result, hit.seq], [])
-      .map((date, i) => {
-        if (i == 0) {
-          date.setDate(1);
-        }
-        if (i == libraryDates.length - 1) {
-          date.setDate(30);
-        }
-        return date;
-      })
-  );
-
+  // X & Y scales for line chart, based on time and number of cells sequenced
   const xScale = d3
       .scaleTime()
       .range([0, windowDim.width])
-      .domain(xScaleDomain),
+      .domain(
+        d3.extent(
+          stats.libraryDates
+            .reduce((result, hit) => [...result, hit.seq], [])
+            .map((date, i) => {
+              if (i == 0) {
+                date.setDate(1);
+              }
+              if (i == stats.libraryDates.length - 1) {
+                date.setDate(30);
+              }
+              return date;
+            })
+        )
+      ),
     yScale = d3
       .scaleLinear()
       .range([windowDim.height, 0])
-      .domain([0, d3.max(libraryDates, d => d.accCellCount)]),
+      .domain([0, d3.max(stats.libraryDates, d => d.accCellCount)]),
     line = d3
       .line()
       .x(d => xScale(d.seq))
       .y(d => yScale(d.accCellCount))
       .curve(d3.curveBasis);
 
+  /**
+   * Initializes skip intro animation and goes to end.
+   *
+   * @param {String} chart - Class names for given chart.
+   */
   function initializeEndClick(chart) {
     d3.select("body").on("mousedown", function(d) {
-      if (d3.event.which == 1) {
+      if (d3.event.which === 1) {
         d3.selectAll("*").transition();
         d3
           .selectAll(chart)
           .interrupt()
           .style("opacity", 0)
           .classed("clicked", true);
-        return true;
       }
     });
   }
 
+  /**
+   * Initializes an svg element.
+   *
+   * @param {String} type - Class name for given svg.
+   */
   function initializeSvg(type) {
     return d3
       .selectAll(type)
@@ -78,6 +88,12 @@ const Chart = ({ stats, library, samples }) => {
       )
       .classed("svg-content-responsive", true);
   }
+
+  /**
+   * Initializes and appends X axis for a given svg element.
+   *
+   * @param {Object} mainSvg - A given svg element.
+   */
   function initializeXaxis(mainSvg) {
     mainSvg
       .append("g")
@@ -107,6 +123,12 @@ const Chart = ({ stats, library, samples }) => {
       .style("text-anchor", "middle")
       .text("Date");
   }
+
+  /**
+   * Initializes and appends Y axis for a given svg element.
+   *
+   * @param {Object} mainSvg - A given svg element.
+   */
   function initializeYaxis(mainSvg) {
     mainSvg
       .append("g")
@@ -134,12 +156,24 @@ const Chart = ({ stats, library, samples }) => {
       .text("Cells Sequenced");
   }
 
+  /**
+   * Hide a given element.
+   *
+   * @param {Object} element - A given dom element.
+   */
   function hideElement(element) {
     d3.selectAll(element).style("opacity", 0);
   }
+
+  /**
+   * Show a given element.
+   *
+   * @param {Object} element - A given dom element.
+   */
   function showElement(element) {
     d3.selectAll(element).style("opacity", 1);
   }
+
   return (
     <div>
       <LineChart
@@ -161,8 +195,6 @@ const Chart = ({ stats, library, samples }) => {
         margin={margin}
         windowDim={windowDim}
         xScale={xScale}
-        line={line}
-        initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}

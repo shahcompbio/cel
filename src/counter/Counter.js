@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
-import { select } from "d3";
+
 class Counter extends Component {
   componentDidMount() {
     this.createChart();
@@ -11,15 +11,10 @@ class Counter extends Component {
   }
 
   createChart() {
-    const samples = this.props.samples,
-      cellCount = this.props.stats.cellCount,
-      libraryCount = this.props.stats.libraryCount,
-      libraryDates = this.props.stats.libraryDates,
-      node = select(this.node),
+    const cellCount = this.props.stats.cellCount,
       screenWidth = window.innerWidth,
       screenHeight = window.innerHeight,
-      width = screenWidth * 0.9,
-      height = screenHeight * 0.8;
+      width = screenWidth * 0.9;
 
     const margin = {
       top: screenHeight / 15,
@@ -28,30 +23,12 @@ class Counter extends Component {
       left: screenWidth / 15,
       general: 10
     };
-    const xScale = d3
-        .scaleTime()
-        .range([0, width])
-        .domain(
-          d3.extent(
-            libraryDates.reduce((result, hit) => [...result, hit.seq], [])
-          )
-        ),
-      yScale = d3
-        .scaleLinear()
-        .range([height, 0])
-        .domain([0, d3.max(libraryDates, d => d.accCellCount)]);
-
-    const line = d3
-      .line()
-      .x(d => xScale(d.seq))
-      .y(d => yScale(d.accCellCount))
-      .curve(d3.curveBasis);
 
     initializeTitle();
     moveTitle();
 
     function initializeTitle() {
-      const counter = d3
+      return d3
         .select(".Counter")
         .attr("width", screenWidth)
         .attr("height", screenHeight)

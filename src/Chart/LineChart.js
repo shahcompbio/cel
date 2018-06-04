@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
-import * as moment from "moment";
 import { select } from "d3";
 import "d3-transition";
 
@@ -15,17 +14,13 @@ class LineChart extends Component {
 
   createChart() {
     const libraryDates = this.props.stats.libraryDates,
-      cellCount = this.props.stats.cellCount,
-      node = select(this.node),
       dim = this.props.windowDim,
       margin = this.props.margin,
       line = this.props.line,
       initializeEndClick = this.props.initializeEndClick.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeYaxis = this.props.initializeYaxis.bind(this),
-      initializeXaxis = this.props.initializeXaxis.bind(this),
-      hideElement = this.props.hideElement.bind(this),
-      showElement = this.props.showElement.bind(this);
+      initializeXaxis = this.props.initializeXaxis.bind(this);
 
     const lineChartClasses =
       ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter";
