@@ -62,7 +62,7 @@ function addLibraryDates(data, samples) {
         ...result,
         {
           accCellCount:
-            result.length === 0
+            result.length == 0
               ? hit.size
               : hit.size + result[result.length - 1].accCellCount,
           ...hit
@@ -73,7 +73,6 @@ function addLibraryDates(data, samples) {
 
   return libraryDates;
 }
-
 function getMonthRange(data) {
   data.sort(function(a, b) {
     return a.seq - b.seq;

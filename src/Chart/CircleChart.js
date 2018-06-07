@@ -19,20 +19,14 @@ class CircleChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       xScale = this.props.xScale,
+      goToEndAnimation = this.props.goToEndAnimation.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this),
       hideElement = this.props.hideElement.bind(this),
       showElement = this.props.showElement.bind(this),
+      initializeEndClick = this.props.initializeEndClick.bind(this),
+      endAnimationTriggered = this.props.endAnimationTriggered,
       colossusUrl = "http://colossus.bcgsc.ca/dlp/library/";
-
-    var endAnimationFlag = false;
-
-    const MutationObserver =
-      window.MutationObserver ||
-      window.WebKitMutationObserver ||
-      window.MozMutationObserver;
-
-    var mutationListener = setMutationListener();
 
     const mainSvg = initializeSvg(".CircleChart");
 
@@ -49,44 +43,30 @@ class CircleChart extends Component {
       return { p1: pointData[i].p1, ...d };
     });
 
+    const simulation = forceSimulation(updatedNodes);
+    initializeEndClick();
+
     drawSegements(pointData);
     startLineAnimation();
     appendSortToggle();
-    forceSimulation();
 
-    function forceSimulation() {
-      d3
-        .forceSimulation(updatedNodes)
+    function forceSimulation(updatedData) {
+      return d3
+        .forceSimulation(updatedData)
         .force("center", d3.forceCenter(dim.width / 2, dim.height / 2))
         .force("charge", null)
         .force(
           "collision",
-          d3
-            .forceCollide()
-            .radius(function(d) {
-              return d.r + 2;
-            })
-            .strength(0.3)
+          d3.forceCollide().radius(function(d) {
+            return d.r + 2;
+          })
         )
         .force("cluster", clustering)
-        .force(
-          "x",
-          d3.forceX().x(function(d) {
-            return samples.indexOf(d.data.sample) * 10;
-          })
-        )
-        .force(
-          "y",
-          d3.forceY().y(function(d) {
-            return d.y / 3;
-          })
-        )
-        .on("tick", ticked)
+        .on("tick", function() {
+          ticked(updatedData);
+        })
         .on("end", function() {
-          if (!endAnimationFlag) {
-            mutationListener.disconnect();
-            startCircleAnimation();
-          }
+          goToEndAnimation(false);
         });
     }
 
@@ -105,13 +85,23 @@ class CircleChart extends Component {
       return pack(libraries)
         .descendants()
         .filter(d => d.depth === 2)
-        .sort(function(a, b) {
-          return a.data.seq - b.data.seq;
-        });
+        .sort((a, b) => a.data.seq - b.data.seq);
     }
 
     function appendSortToggle() {
+      initSortContainers();
       initializeXaxis(mainSvg);
+
+      addOrderlSlider("Order by Date", "Date", sortByDate);
+      addOrderlSlider("Select a Sample", "Sample", sortBySample);
+
+      addSupplementarySortElements();
+      d3.select(".orderBySample .switch input").attr("disabled", "");
+      hideElement(".CircleChart .xAxis");
+      hideElement(".toggles");
+    }
+    function addSupplementarySortElements() {
+      //Move the xAxis for ordered by date
       d3
         .select(".CircleChart .xAxis")
         .attr(
@@ -122,27 +112,136 @@ class CircleChart extends Component {
             (4 * dim.height / 5 + margin.top * 2.5) +
             ")"
         );
+      //Append a list of unique samples for ordered by sample name
+      var sampleToggle = d3
+        .select(".orderBySample")
+        .append("div")
+        .style("height", dim.height / 2 + "px")
+        .classed("uniqueSampleDiv", true)
+        .append("ul")
+        .classed("uniqueSampleList", true);
 
+      sampleToggle
+        .selectAll(".uniqueSampleList")
+        .data(getUniqueSamples())
+        .enter()
+        .append("li")
+        .html(d => d)
+        .on("click", selectSample);
+    }
+    function selectSample(d) {
+      //Change the status of the selected sample
+      d3.selectAll(".uniqueSampleList li").filter(sample => {
+        if (d3.select(this).text() === d) {
+          var sampleFilterStatus = d3
+            .select(this)
+            .classed("chosenSampleFilter");
+          d3.select(this).classed("chosenSampleFilter", !sampleFilterStatus);
+        }
+      });
+      //Get all the chosen samples
+      var chosenSamples = d3.selectAll(".uniqueSampleList .chosenSampleFilter"),
+        allChosenSamples = [];
+      //If there is 1+ chosen samples
+      if (chosenSamples) {
+        d3.select(".orderBySample").classed("sample-toggled", true);
+
+        chosenSamples.each(element => {
+          allChosenSamples.push(element);
+        });
+
+        setHighlightAttr(allChosenSamples).map(node => {
+          //Higlight or colour grey according to what is chosen
+          d3
+            .select("circle#library-" + node.data.id)
+            .style("fill", function(node) {
+              return node.data.isHighlighted
+                ? color(samples.indexOf(node.data.sample))
+                : "grey";
+            });
+        });
+
+        //Colour title blue
+        d3.select(".orderBySample text").classed("filterSelected", true);
+
+        //Move the sample switch to on and allow ability to turn off
+        d3
+          .select(".orderBySample .switch input")
+          .attr("checked", "")
+          .attr("disabled", null);
+      } else {
+        //If there are no samples chosen
+        setHighlightAttr(allChosenSamples);
+
+        //Turn sample switch off and remove blue highlight colour
+        d3.select(".orderBySample").classed("sample-toggled", false);
+        d3.select(".orderBySample text").classed("filterSelected", false);
+        d3
+          .select(".orderBySample .switch input")
+          .attr("checked", null)
+          .attr("disabled", "");
+      }
+    }
+
+    function setHighlightAttr(choosenSamples) {
+      return updatedNodes.map(node => {
+        node.data.isHighlighted =
+          choosenSamples.indexOf(node.data.sample) === -1 ? false : true;
+        return node;
+      });
+    }
+
+    function initSortContainers() {
       d3
         .select(".App")
         .append("div")
-        .style("padding-left", margin.left / 4 + "px")
-        .style("padding-top", dim.height / 4 + "px")
-        .style("float", "left")
         .classed("toggles", true)
+        .style("margin-top", dim.width / 8 + "px")
+        .style("margin-left", dim.height / 18 + "px")
+        .style("float", "left");
+    }
+    function getUniqueSamples() {
+      return samples.filter(
+        (sample, index, self) => self.indexOf(sample) === index
+      );
+    }
+    function addOrderlSlider(title, className, onClick) {
+      d3
+        .select(".toggles")
+        .append("div")
+        .style("margin-bottom", "30px")
+        .classed("orderBy" + className, true)
         .html(
-          "<text>Order By Date</text><br>\
-          <label class='switch'> \
-            <input type='checkbox'>\
-              <span class='slider round'></span>\
-          </label>\
-        "
+          "<br>\
+                <label class='switch'> \
+                  <input type='checkbox'>\
+                    <span class='slider round'></span>\
+                </label>\
+                <text class='orderBy" +
+            className +
+            "Text'>" +
+            title +
+            "</text>"
         )
         .select(".slider")
-        .on("click", sortByDate);
+        .on("click", onClick);
+    }
 
-      hideElement(".CircleChart .xAxis");
-      hideElement(".toggles");
+    function sortBySample() {
+      //Toggling te select sample switch
+      if (!d3.select(this).classed("sample-toggled")) {
+        d3.select(".orderBySample text").classed("filterSelected", false);
+        d3
+          .select(".orderBySample .switch input")
+          .attr("checked", null)
+          .attr("disabled", "");
+
+        d3
+          .selectAll(".uniqueSampleList li")
+          .classed("chosenSampleFilter", false);
+
+        appendColourToCircleNodes(updatedNodes, d3.select(".CircleChart"));
+      }
     }
 
     function sortByDate() {
@@ -171,34 +270,15 @@ class CircleChart extends Component {
             }
           })
           .transition();
+        d3.select(".orderByDate text").classed("filterSelected", true);
       } else {
+        d3.select(".orderByDate text").classed("filterSelected", false);
         hideElement(".CircleChart .xAxis");
-        goToEndAnimation();
+        goToEndAnimation(true);
       }
       d3
         .select(this)
         .classed("date-toggled", !d3.select(this).classed("date-toggled"));
-    }
-
-    function setMutationListener() {
-      var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          if (
-            mutation.type === "attributes" &&
-            mutation.target.classList.value.indexOf("clicked") !== -1
-          ) {
-            endAnimationFlag = true;
-            goToEndAnimation();
-            observer.disconnect();
-          }
-        });
-      });
-
-      var lineChart = d3.selectAll(".LineChart .xAxis").node();
-      observer.observe(lineChart, {
-        attributes: true
-      });
-      return observer;
     }
 
     function clustering(alpha) {
@@ -218,83 +298,16 @@ class CircleChart extends Component {
         }
       });
     }
-    function removeLineChartContent() {
+    /*  function LineChartContent() {
       d3
         .selectAll(".LineChart, .Counter")
         .transition()
         .remove();
-    }
+    }*/
 
-    function goToEndAnimation() {
-      d3
-        .selectAll("circle")
-        .transition()
-        .style("opacity", 1)
-        .transition()
-        .attr("cx", function(d, i) {
-          return d.x;
-        })
-        .attr("cy", function(d, i) {
-          return d.y;
-        })
-        .transition()
-        .duration(1000)
-        .attr("r", function(d) {
-          return d.r;
-        })
-        .on("end", function() {
-          d3
-            .select(this)
-            .on("mouseover", showDetail)
-            .on("mouseout", hideDetail);
-        });
-      removeLineChartContent();
-      showElement(".toggles");
-    }
-
-    function startCircleAnimation() {
-      d3
-        .selectAll("circle")
-        .transition()
-        .delay(7000)
-        .duration(200)
-        .style("opacity", 1)
-        .transition()
-        .delay(function(d, i) {
-          return i * 10 + 500;
-        })
-        .duration(1000)
-        .attr("cx", function(d, i) {
-          return d.x;
-        })
-        .attr("cy", function(d, i) {
-          return d.y;
-        })
-        .transition()
-        .delay(200)
-        .duration(1000)
-        .attr("r", function(d) {
-          return d.r;
-        })
-        .on("end", function() {
-          d3
-            .select(this)
-            .on("mouseover", showDetail)
-            .on("mouseout", hideDetail);
-
-          removeLineChartContent();
-          showElement(".toggles");
-        });
-    }
-
-    function ticked() {
-      const tickedChart = node
-        .selectAll("circle")
-        .data(updatedNodes)
-        .style("fill", function(d, i) {
-          return color(samples.indexOf(d.data.sample));
-        });
-
+    function ticked(updatedData) {
+      const tickedChart = appendColourToCircleNodes(updatedData, node);
+      var endAnimation = d3.select(".LineChart").classed("clicked");
       tickedChart
         .enter()
         .append("a")
@@ -305,17 +318,17 @@ class CircleChart extends Component {
         .append("circle")
         .attr("class", "circles")
         .attr("id", function(d) {
-          return d.data.id;
+          return "library-" + d.data.id;
         })
         .merge(tickedChart)
         .attr("r", function(d) {
-          return endAnimationFlag ? d.r : 2;
+          return endAnimation ? d.r : 2;
         })
         .attr("cx", function(d) {
-          return endAnimationFlag ? d.x : d.p1.x;
+          return endAnimation ? d.x : d.p1.x;
         })
         .attr("cy", function(d) {
-          return endAnimationFlag ? d.y : d.p1.y;
+          return endAnimation ? d.y : d.p1.y;
         })
         .attr(
           "transform",
@@ -326,7 +339,7 @@ class CircleChart extends Component {
             ")"
         )
         .style("opacity", function() {
-          if (endAnimationFlag) {
+          if (endAnimation) {
             return 1;
           } else {
             return 0;
@@ -336,41 +349,13 @@ class CircleChart extends Component {
       tickedChart.exit().remove();
     }
 
-    function showDetail(d, i) {
-      d3.select(this).classed("hover", true);
-
-      tooltip.classed("hover", true);
-
-      tooltip
-        .html(
-          "<b>Sample</b>: " +
-            d.data.sample +
-            "<br/> <b>Library</b>: " +
-            d.data.library +
-            "<br /> <b>Total Cells</b>: " +
-            d.data.size +
-            "<br /> <b>Seq Date</b>: " +
-            d.data.seq
-        )
-        .style("left", d3.event.pageX + "px")
-        .style("top", d3.event.pageY + "px");
-    }
-
-    function hideDetail(d, i) {
-      d3.select(this).classed("hover", false);
-
-      tooltip
-        .classed("hover", false)
-        .style("left", "0px")
-        .style("top", "0px");
-    }
-
     function initializeTooltip() {
       return d3
         .select("body")
         .append("div")
         .attr("class", "tooltip");
     }
+
     function initializeColors(len) {
       return d3
         .scaleSequential()
@@ -465,6 +450,15 @@ class CircleChart extends Component {
         })
         .transition()
         .style("opacity", 0);
+    }
+
+    function appendColourToCircleNodes(updatedData, node) {
+      return node
+        .selectAll("circle")
+        .data(updatedData)
+        .style("fill", function(d, i) {
+          return color(samples.indexOf(d.data.sample));
+        });
     }
   }
 

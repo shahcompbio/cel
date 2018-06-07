@@ -17,14 +17,13 @@ class LineChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       line = this.props.line,
+      hideChart = this.props.hideChart.bind(this),
       initializeEndClick = this.props.initializeEndClick.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeYaxis = this.props.initializeYaxis.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this);
 
-    const lineChartClasses =
-      ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter";
-    initializeEndClick(lineChartClasses);
+    //  initializeEndClick();
 
     const mainSvg = initializeSvg(".LineChart");
 
@@ -58,16 +57,6 @@ class LineChart extends Component {
         .duration(7000)
         .ease(d3.easeSinInOut)
         .attr("width", dim.width);
-    }
-
-    function hideChart(isEndClick) {
-      d3
-        .selectAll(
-          ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis"
-        )
-        .transition()
-        .delay(8000)
-        .style("opacity", 0);
     }
   }
 

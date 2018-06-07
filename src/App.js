@@ -26,6 +26,7 @@ class App extends Component {
           stats={this.state.data.stats}
           library={this.state.data.library}
           samples={this.state.data.samples}
+          endAnimationTriggered={false}
         />
         <Counter
           className="Counter"

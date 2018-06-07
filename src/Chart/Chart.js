@@ -6,7 +6,7 @@ import "d3-transition";
 import LineChart from "./LineChart.js";
 import CircleChart from "./CircleChart.js";
 
-const Chart = ({ stats, library, samples }) => {
+const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
   //Chart dimensions according to screen size
   const windowDim = {
     screenWidth: window.innerWidth,
@@ -52,6 +52,9 @@ const Chart = ({ stats, library, samples }) => {
       .y(d => yScale(d.accCellCount))
       .curve(d3.curveBasis);
 
+  const lineChartClasses =
+    ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter, .sepLines";
+
   /**
    * Initializes skip intro animation and goes to end.
    *
@@ -60,16 +63,34 @@ const Chart = ({ stats, library, samples }) => {
   function initializeEndClick(chart) {
     d3.select("body").on("mousedown", function(d) {
       if (d3.event.which === 1) {
+        d3.select(".LineChart").classed("clicked", true);
         d3.selectAll("*").transition();
+        d3.selectAll("circle").interrupt();
         d3
-          .selectAll(chart)
+          .selectAll(lineChartClasses)
           .interrupt()
           .style("opacity", 0)
           .classed("clicked", true);
+        endAnimationTriggered: true;
+        goToEndAnimation(true);
+        removeEndClickListener();
+        return true;
       }
     });
   }
+  function hideChart() {
+    d3
+      .selectAll(
+        ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis"
+      )
+      .transition()
+      .delay(8000)
+      .style("opacity", 0);
+  }
 
+  function removeEndClickListener() {
+    d3.select("body").on("mousedown", null);
+  }
   /**
    * Initializes an svg element.
    *
@@ -174,6 +195,85 @@ const Chart = ({ stats, library, samples }) => {
     d3.selectAll(element).style("opacity", 1);
   }
 
+  function goToEndAnimation(isStaticTransition) {
+    d3
+      .selectAll("circle")
+      .transition()
+      .delay(function() {
+        return isStaticTransition ? 0 : 7000;
+      })
+      .duration(function() {
+        return isStaticTransition ? 0 : 200;
+      })
+      .style("opacity", 1)
+      .transition()
+      .delay(function(d, i) {
+        return isStaticTransition ? 0 : i * 10 + 500;
+      })
+      .duration(function() {
+        return isStaticTransition ? 0 : 1000;
+      })
+      .attr("cx", function(d, i) {
+        return d.x;
+      })
+      .attr("cy", function(d, i) {
+        return d.y;
+      })
+      .transition()
+      .delay(function() {
+        return isStaticTransition ? 0 : 200;
+      })
+      .duration(1000)
+      .attr("r", function(d) {
+        return d.r;
+      })
+      .style("opacity", 1)
+      .on("end", function() {
+        d3
+          .select(this)
+          .on("mouseover", showDetail)
+          .on("mouseout", hideDetail);
+        if (!isStaticTransition) {
+          showElement(".toggles");
+        }
+      });
+    if (isStaticTransition) {
+      showElement(".toggles");
+    }
+  }
+
+  function showDetail(d, i) {
+    var tooltip = d3.select(".tooltip");
+
+    d3.select(this).classed("hover", true);
+    tooltip.classed("hover", true);
+
+    tooltip
+      .html(
+        "<b>Sample</b>: " +
+          d.data.sample +
+          "<br/> <b>Library</b>: " +
+          d.data.library +
+          "<br /> <b>Total Cells</b>: " +
+          d.data.size +
+          "<br /> <b>Seq Date</b>: " +
+          d3.timeFormat("%Y-%m-%d")(d.data.seq)
+      )
+      .style("left", d3.event.pageX + "px")
+      .style("top", d3.event.pageY + "px");
+  }
+
+  function hideDetail(d, i) {
+    var tooltip = d3.select(".tooltip");
+
+    d3.select(this).classed("hover", false);
+
+    tooltip
+      .classed("hover", false)
+      .style("left", "0px")
+      .style("top", "0px");
+  }
+
   return (
     <div>
       <LineChart
@@ -181,6 +281,7 @@ const Chart = ({ stats, library, samples }) => {
         margin={margin}
         windowDim={windowDim}
         line={line}
+        hideChart={hideChart}
         initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
         initializeYaxis={initializeYaxis}
@@ -195,6 +296,9 @@ const Chart = ({ stats, library, samples }) => {
         margin={margin}
         windowDim={windowDim}
         xScale={xScale}
+        endAnimationTriggered={endAnimationTriggered}
+        goToEndAnimation={goToEndAnimation}
+        initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}

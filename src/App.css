@@ -1,7 +1,19 @@
+/**
+* 1. General app wide
+* 2. Circle chart
+* 3. Tooltip
+* 4. Line graph
+* 5. Toggles
+*
+***/
+
+/**GENERAL APP WIDE**/
+body {
+  overflow: hidden;
+}
 .App {
   text-align: center;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 18px;
+  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
 }
 
 .App-logo {
@@ -23,7 +35,20 @@
 .App-intro {
   font-size: large;
 }
-
+.svg-container {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  vertical-align: top;
+  overflow: hidden;
+}
+.svg-content-responsive {
+  display: inline-block;
+  position: absolute;
+  left: 0;
+}
+/**CIRCLE CHART**/
 circle {
   opacity: 0.9;
   stroke: #3c3b3b;
@@ -34,6 +59,7 @@ circle.hover {
   stroke-opacity: 0.9;
 }
 
+/**TOOLTIP**/
 div.tooltip {
   position: absolute;
   text-align: center;
@@ -48,6 +74,7 @@ div.tooltip.hover {
   opacity: 0.9;
 }
 
+/**LINE GRAPH**/
 div.title {
   position: absolute;
   display: table;
@@ -62,23 +89,6 @@ div.title {
   stroke: steelblue;
   stroke-width: 5px;
   opacity: 0.5;
-}
-
-.area {
-  fill: lightsteelblue;
-}
-.svg-container {
-  display: inline-block;
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%; /* aspect ratio */
-  vertical-align: top;
-  overflow: hidden;
-}
-.svg-content-responsive {
-  display: inline-block;
-  position: absolute;
-  left: 0;
 }
 .yAxis line:not(:last-child) {
   stroke: #777;
@@ -96,19 +106,28 @@ div.title {
   fill: black;
   font-size: 15px;
 }
+
+/**TOGGLE ORDER**/
 .toggles {
+  vertical-align: top;
   display: inline-block;
 }
 .toggles text {
+  margin-left: 55px;
+  margin-top: 2px;
+  position: absolute;
+  float: left;
   font-size: 15px;
+  height: 50px;
   color: #717171eb;
 }
+.filterSelected {
+  color: #2196f3 !important;
+}
 .switch {
-  position: relative;
-  display: inline-block;
+  position: absolute;
   width: 50px;
   height: 25px;
-  margin-top: 5px;
   float: left;
 }
 
@@ -151,15 +170,58 @@ input:checked + .slider:before {
   -ms-transform: translateX(26px);
   transform: translateX(26px);
 }
-
-/* Rounded sliders */
 .slider.round {
   border-radius: 34px;
 }
-
 .slider.round:before {
   border-radius: 50%;
 }
+
+/**ORDER BY SAMPLE**/
+.uniqueSampleDiv {
+  margin-top: 30px;
+  display: none;
+  margin-left: 55px;
+  position: absolute;
+  overflow: auto;
+}
+.orderBySample:hover .uniqueSampleDiv {
+  display: block;
+  opacity: 1;
+}
+.uniqueSampleList {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.uniqueSampleList li {
+  padding: 4px;
+  font-size: 14px;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+}
+.uniqueSampleList li:hover {
+  background: #d6d6d6d4;
+}
+.chosenSampleFilter {
+  background: #2196f382;
+}
+.uniqueSampleList li:last-child {
+  border: none;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
