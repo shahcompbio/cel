@@ -19,6 +19,7 @@ class CircleChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       xScale = this.props.xScale,
+      yScale = this.props.yScale,
       goToEndAnimation = this.props.goToEndAnimation.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this),
@@ -33,13 +34,11 @@ class CircleChart extends Component {
     const tooltip = initializeTooltip();
     const color = initializeColors(samples.length);
 
-    const pack = d3.pack().size([dim.width, dim.height]);
-    const nodes = packNodes(libraries);
     const clusters = getClusters();
 
-    const pointData = splitLineGraph(color, nodes);
+    const pointData = splitLineGraph(color, libraries);
 
-    const updatedNodes = nodes.map((d, i) => {
+    const updatedNodes = libraries.map((d, i) => {
       return { p1: pointData[i].p1, ...d };
     });
 
@@ -48,7 +47,23 @@ class CircleChart extends Component {
 
     drawSegements(pointData);
     startLineAnimation();
+    appendSwitchViewsButtons();
     appendSortToggle();
+    appendSaturationMatrix();
+
+    d3.timeout(function() {
+      for (
+        var i = 0,
+          n = Math.ceil(
+            Math.log(simulation.alphaMin()) /
+              Math.log(1 - simulation.alphaDecay())
+          );
+        i < n;
+        ++i
+      ) {
+        simulation.tick();
+      }
+    });
 
     function forceSimulation(updatedData) {
       return d3
@@ -59,6 +74,18 @@ class CircleChart extends Component {
           "collision",
           d3.forceCollide().radius(function(d) {
             return d.r + 2;
+          })
+        )
+        .force(
+          "x",
+          d3.forceX().x(function(d) {
+            return samples.indexOf(d.data.sample) * 10;
+          })
+        )
+        .force(
+          "y",
+          d3.forceY().y(function(d) {
+            return d.y / 3;
           })
         )
         .force("cluster", clustering)
@@ -72,7 +99,7 @@ class CircleChart extends Component {
 
     function getClusters() {
       const clusters = new Array(samples.length);
-      nodes.forEach(function(d) {
+      libraries.forEach(function(d) {
         const i = samples.indexOf(d.data.sample);
         if (!clusters[i] || d.r > clusters[i].r) {
           clusters[i] = d;
@@ -81,13 +108,44 @@ class CircleChart extends Component {
       return clusters;
     }
 
-    function packNodes(libraries) {
-      return pack(libraries)
-        .descendants()
-        .filter(d => d.depth === 2)
-        .sort((a, b) => a.data.seq - b.data.seq);
+    function appendSwitchViewsButtons() {
+      d3
+        .select(".App")
+        .append("div")
+        .classed("switchViews", true)
+        .classed("circleView", true)
+        .style("margin-top", dim.height / 3 + "px")
+        .text(">")
+        .on("mousedown", function() {
+          d3
+            .select(this)
+            .classed("circleView", !d3.select(this).classed("circleView"));
+          toggleViews();
+        })
+        .style("opacity", 0);
     }
 
+    function toggleViews() {
+      if (d3.select(".switchViews").classed("circleView")) {
+        //Show the circle chart
+        showElement(".CircleChart");
+        showElement(".toggles");
+        d3.select(".CircleChart").style("pointer-events", "all");
+        //Hide the line chart
+        hideElement(
+          ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
+        );
+      } else {
+        //Show the line chart
+        showElement(
+          ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
+        );
+        //Hide the circle chart
+        d3.select(".CircleChart").style("pointer-events", "none");
+        hideElement(".CircleChart");
+        hideElement(".toggles");
+      }
+    }
     function appendSortToggle() {
       initSortContainers();
       initializeXaxis(mainSvg);
@@ -100,6 +158,7 @@ class CircleChart extends Component {
       hideElement(".CircleChart .xAxis");
       hideElement(".toggles");
     }
+
     function addSupplementarySortElements() {
       //Move the xAxis for ordered by date
       d3
@@ -116,7 +175,7 @@ class CircleChart extends Component {
       var sampleToggle = d3
         .select(".orderBySample")
         .append("div")
-        .style("height", dim.height / 2 + "px")
+        .style("height", dim.height / 3 + "px")
         .classed("uniqueSampleDiv", true)
         .append("ul")
         .classed("uniqueSampleList", true);
@@ -127,8 +186,56 @@ class CircleChart extends Component {
         .enter()
         .append("li")
         .html(d => d)
-        .on("click", selectSample);
+        .on("click", selectSample)
+        .on("mouseover", function() {
+          var sampleName = d3.select(this).text();
+          hoverFilterSample(true, sampleName);
+        })
+        .on("mouseout", function() {
+          var sampleName = d3.select(this).text();
+          hoverFilterSample(false, sampleName);
+        });
     }
+    function hoverFilterSample(isMouseOverEvent, highlightedSample) {
+      //Grey out everything that isn't chosen
+      d3
+        .selectAll(".CircleChart circle:not(.sample-" + highlightedSample + ")")
+        .classed("greyedOutHoverSample", isMouseOverEvent);
+
+      var hoveredCircleSelection = d3.selectAll(
+        ".CircleChart .sample-" + highlightedSample
+      );
+
+      //Remove previous grey from choosen sample
+      hoveredCircleSelection.classed("greyedOutCircle", false);
+
+      //If hover out go back to original state
+      if (
+        !isMouseOverEvent &&
+        hoveredCircleSelection.classed("unselectedSample")
+      ) {
+        hoveredCircleSelection.classed("greyedOutCircle", true);
+      }
+    }
+
+    function shadeRGBColor(color, percent) {
+      var f = color.split(","),
+        t = percent < 0 ? 0 : 255,
+        p = percent < 0 ? percent * -1 : percent,
+        R = parseInt(f[0].slice(4)),
+        G = parseInt(f[1]),
+        B = parseInt(f[2]);
+      return (
+        "rgb(" +
+        (Math.round((t - R) * p) + R) +
+        "," +
+        (Math.round((t - G) * p) + G) +
+        "," +
+        (Math.round((t - B) * p) + B) +
+        ")"
+      );
+    }
+
     function selectSample(d) {
       //Change the status of the selected sample
       d3.selectAll(".uniqueSampleList li").filter(sample => {
@@ -140,24 +247,31 @@ class CircleChart extends Component {
         }
       });
       //Get all the chosen samples
-      var chosenSamples = d3.selectAll(".uniqueSampleList .chosenSampleFilter"),
-        allChosenSamples = [];
-      //If there is 1+ chosen samples
-      if (chosenSamples) {
-        d3.select(".orderBySample").classed("sample-toggled", true);
+      var allChosenSamples = [];
+      var chosenSamples = d3
+          .selectAll(".uniqueSampleList .chosenSampleFilter")
+          .each(element => {
+            allChosenSamples.push(element);
+          }, []),
+        allUniqueSamples = [];
 
-        chosenSamples.each(element => {
-          allChosenSamples.push(element);
+      //If there is 1+ chosen samples
+      if (allChosenSamples.length > 0) {
+        d3.select(".orderBySample").classed("sample-toggled", true);
+        var allSamples = d3.selectAll(".uniqueSampleList li");
+        allSamples.each(element => {
+          allUniqueSamples.push(element);
         });
 
-        setHighlightAttr(allChosenSamples).map(node => {
+        allUniqueSamples.map(sample => {
           //Higlight or colour grey according to what is chosen
           d3
-            .select("circle#library-" + node.data.id)
-            .style("fill", function(node) {
-              return node.data.isHighlighted
-                ? color(samples.indexOf(node.data.sample))
-                : "grey";
+            .selectAll(".CircleChart .sample-" + sample)
+            .classed("greyedOutCircle", function() {
+              return allChosenSamples.indexOf(sample) === -1;
+            })
+            .classed("unselectedSample", function() {
+              return allChosenSamples.indexOf(sample) === -1;
             });
         });
 
@@ -170,8 +284,10 @@ class CircleChart extends Component {
           .attr("checked", "")
           .attr("disabled", null);
       } else {
-        //If there are no samples chosen
-        setHighlightAttr(allChosenSamples);
+        d3
+          .selectAll("circle")
+          .classed("greyedOutCircle", false)
+          .classed("unselectedSample", false);
 
         //Turn sample switch off and remove blue highlight colour
         d3.select(".orderBySample").classed("sample-toggled", false);
@@ -181,14 +297,6 @@ class CircleChart extends Component {
           .attr("checked", null)
           .attr("disabled", "");
       }
-    }
-
-    function setHighlightAttr(choosenSamples) {
-      return updatedNodes.map(node => {
-        node.data.isHighlighted =
-          choosenSamples.indexOf(node.data.sample) === -1 ? false : true;
-        return node;
-      });
     }
 
     function initSortContainers() {
@@ -228,7 +336,7 @@ class CircleChart extends Component {
     }
 
     function sortBySample() {
-      //Toggling te select sample switch
+      //Toggling the select sample switch
       if (!d3.select(this).classed("sample-toggled")) {
         d3.select(".orderBySample text").classed("filterSelected", false);
         d3
@@ -239,8 +347,10 @@ class CircleChart extends Component {
         d3
           .selectAll(".uniqueSampleList li")
           .classed("chosenSampleFilter", false);
-
-        appendColourToCircleNodes(updatedNodes, d3.select(".CircleChart"));
+        d3
+          .selectAll("circle")
+          .classed("greyedOutCircle", false)
+          .classed("unselectedSample", false);
       }
     }
 
@@ -282,7 +392,7 @@ class CircleChart extends Component {
     }
 
     function clustering(alpha) {
-      return nodes.map(node => {
+      return libraries.map(node => {
         const cluster = clusters[samples.indexOf(node.data.sample)];
         if (cluster === node) return;
         var x = node.x - cluster.x,
@@ -298,12 +408,6 @@ class CircleChart extends Component {
         }
       });
     }
-    /*  function LineChartContent() {
-      d3
-        .selectAll(".LineChart, .Counter")
-        .transition()
-        .remove();
-    }*/
 
     function ticked(updatedData) {
       const tickedChart = appendColourToCircleNodes(updatedData, node);
@@ -317,6 +421,9 @@ class CircleChart extends Component {
         .attr("target", "_blank")
         .append("circle")
         .attr("class", "circles")
+        .attr("class", function(d) {
+          return "sample-" + d.data.sample;
+        })
         .attr("id", function(d) {
           return "library-" + d.data.id;
         })
@@ -460,8 +567,34 @@ class CircleChart extends Component {
           return color(samples.indexOf(d.data.sample));
         });
     }
-  }
+    function appendSaturationMatrix() {
+      var defs = mainSvg.append("defs");
+      var colourMatrix =
+        "\
+      3  0   0   0   0\
+        0  3  0   0   0\
+        0   0  3  0   0\
+        0   0   0  1  0";
 
+      var filter = defs.append("filter").attr("id", "dark-shadow");
+      var highlightFilter = defs.append("filter").attr("id", "highlighter");
+      var blur = defs
+        .append("filter")
+        .attr("id", "blurred")
+        .append("feGaussianBlur")
+        .attr("stdDeviation", 5);
+
+      highlightFilter
+        .append("feColorMatrix")
+        .attr("type", "saturate")
+        .attr("values", "0.5");
+
+      filter
+        .append("feColorMatrix")
+        .attr("type", "matrix")
+        .attr("values", colourMatrix);
+    }
+  }
   render() {
     if (this.props.data === null) {
       return null;

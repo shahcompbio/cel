@@ -36,6 +36,7 @@ class Counter extends Component {
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", "0 0 " + screenWidth + " " + screenHeight + "")
         .classed("svg-content-responsive", true)
+        .style("pointer-events", "none")
         .append("text")
         .attr("class", "counter")
         .attr("x", width - margin.left + "px")

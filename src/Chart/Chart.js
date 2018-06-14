@@ -6,7 +6,7 @@ import "d3-transition";
 import LineChart from "./LineChart.js";
 import CircleChart from "./CircleChart.js";
 
-const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
+const Chart = ({ stats, library, samples }) => {
   //Chart dimensions according to screen size
   const windowDim = {
     screenWidth: window.innerWidth,
@@ -53,7 +53,7 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
       .curve(d3.curveBasis);
 
   const lineChartClasses =
-    ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter, .sepLines";
+    ".LineChart .xAxis,.LineChart .line, .LineChart text, .LineChart .yAxis, .Counter, .sepLines";
 
   /**
    * Initializes skip intro animation and goes to end.
@@ -65,14 +65,13 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
       if (d3.event.which === 1) {
         d3.select(".LineChart").classed("clicked", true);
         d3.selectAll("*").transition();
-        d3.selectAll("circle").interrupt();
-        d3
-          .selectAll(lineChartClasses)
-          .interrupt()
-          .style("opacity", 0)
-          .classed("clicked", true);
-        endAnimationTriggered: true;
+
+        hideElement(lineChartClasses);
+        //  showElement("switchViews")
+        d3.selectAll(lineChartClasses).classed("clicked", true);
+
         goToEndAnimation(true);
+        completeLineChart();
         removeEndClickListener();
         return true;
       }
@@ -80,9 +79,7 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
   }
   function hideChart() {
     d3
-      .selectAll(
-        ".LineChart .xAxis,.LineChart .area,.LineChart .line, .LineChart text, .LineChart .yAxis"
-      )
+      .selectAll(lineChartClasses)
       .transition()
       .delay(8000)
       .style("opacity", 0);
@@ -194,13 +191,23 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
   function showElement(element) {
     d3.selectAll(element).style("opacity", 1);
   }
+  function completeLineChart() {
+    d3
+      .select("#rectClip rect")
+      .transition()
+      .duration(0)
+      .ease(d3.easeSinInOut)
+      .attr("width", windowDim.width);
+  }
 
   function goToEndAnimation(isStaticTransition) {
     d3
       .selectAll("circle")
+      .on("mouseenter", showDetail)
+      .on("mouseleave", hideDetail)
       .transition()
       .delay(function() {
-        return isStaticTransition ? 0 : 7000;
+        return isStaticTransition ? 0 : 12000;
       })
       .duration(function() {
         return isStaticTransition ? 0 : 200;
@@ -227,28 +234,33 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
       .attr("r", function(d) {
         return d.r;
       })
-      .style("opacity", 1)
       .on("end", function() {
-        d3
-          .select(this)
-          .on("mouseover", showDetail)
-          .on("mouseout", hideDetail);
-        if (!isStaticTransition) {
-          showElement(".toggles");
-        }
+        showElement(".toggles");
+        showElement(".switchViews");
       });
-    if (isStaticTransition) {
-      showElement(".toggles");
-    }
   }
+  function showDetail(d) {
+    d3.event.stopPropagation();
+    //  d3
+    //  .selectAll("circle")
+    //    .transition()
+    //    .duration(100)
+    // .attr("r", function(d) {
+    //    return d.r - 4;
+    //    });
 
-  function showDetail(d, i) {
-    var tooltip = d3.select(".tooltip");
+    //  d3
+    ////        .select(this)
+    //      .attr("r", function(d) {
+    //          return d.r;
+    //      })
+    //    .classed("greyedOutCircle", false);*
+    //  .classed("circleHighlighter", true);
 
-    d3.select(this).classed("hover", true);
-    tooltip.classed("hover", true);
-
-    tooltip
+    d3
+      .select(".tooltip")
+      .classed("hover", true)
+      .classed("library-" + d.data.library, true)
       .html(
         "<b>Sample</b>: " +
           d.data.sample +
@@ -264,23 +276,32 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
   }
 
   function hideDetail(d, i) {
-    var tooltip = d3.select(".tooltip");
+    //d3.selectAll("circle");
+    //  .transition()
+    //  .duration(100)
+    //    .attr("r", function(d) {
+    //      return d.r;
+    //    });
+    ////  d3.select(this).classed("greyedOutCircle", function() {
+    //    return d3.select(this).classed("unselectedSample") ? true : false;
+    //    });
+    //  .classed("circleHighlighter", false);
 
-    d3.select(this).classed("hover", false);
-
-    tooltip
+    d3
+      .select(".tooltip")
       .classed("hover", false)
       .style("left", "0px")
       .style("top", "0px");
   }
-
   return (
-    <div>
+    <div className="Charts">
       <LineChart
         stats={stats}
         margin={margin}
         windowDim={windowDim}
         line={line}
+        xScale={xScale}
+        yScale={yScale}
         hideChart={hideChart}
         initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
@@ -295,8 +316,8 @@ const Chart = ({ stats, library, samples, endAnimationTriggered }) => {
         stats={stats}
         margin={margin}
         windowDim={windowDim}
+        yScale={yScale}
         xScale={xScale}
-        endAnimationTriggered={endAnimationTriggered}
         goToEndAnimation={goToEndAnimation}
         initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}

@@ -31,7 +31,9 @@ body {
 .App-title {
   font-size: 1.5em;
 }
-
+.overlay {
+  pointer-events: all;
+}
 .App-intro {
   font-size: large;
 }
@@ -48,17 +50,49 @@ body {
   position: absolute;
   left: 0;
 }
+.switchViews {
+  color: #827b7b69;
+  display: inline-block;
+  float: right;
+  font-size: 200px;
+  font-stretch: extra-condensed;
+  transform: scale(0.4, 1);
+  cursor: pointer;
+}
+.switchViews:hover {
+  color: #0c0c0ca6;
+  -webkit-text-stroke-width: 1px;
+  -webkit-text-stroke-color: black;
+}
 /**CIRCLE CHART**/
 circle {
-  opacity: 0.9;
-  stroke: #3c3b3b;
+  opacity: 1;
+  stroke-width: 1px;
   stroke-opacity: 0;
 }
 
-circle.hover {
-  stroke-opacity: 0.9;
+.circleHighlighter {
+  stroke-opacity: 1;
+  filter: url(#highlighter);
 }
-
+.greyedOutHoverSample {
+  fill: grey !important;
+  opacity: 0.5;
+}
+.greyedOutCircle {
+  fill: grey !important;
+  opacity: 0.5;
+}
+.highlightSample {
+  stroke-opacity: 1;
+  stroke-width: 1px;
+  stroke: black;
+  opacity: 1 !important;
+}
+.pulse {
+  /* Giving Animation Function */
+  -webkit-animation: pulse 2s linear infinite;
+}
 /**TOOLTIP**/
 div.tooltip {
   position: absolute;
@@ -68,6 +102,7 @@ div.tooltip {
   padding: 2px;
   font: 12px sans-serif;
   opacity: 0;
+  pointer-events: none;
 }
 
 div.tooltip.hover {
@@ -98,6 +133,9 @@ div.title {
 }
 .LineChart .yAxis path {
   opacity: 0;
+}
+.focus {
+  fill: black;
 }
 .sepLines {
   stroke-linecap: round;
