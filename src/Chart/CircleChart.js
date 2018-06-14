@@ -19,19 +19,18 @@ class CircleChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       xScale = this.props.xScale,
-      yScale = this.props.yScale,
       goToEndAnimation = this.props.goToEndAnimation.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this),
+      hideDetail = this.props.hideDetail.bind(this),
       hideElement = this.props.hideElement.bind(this),
       showElement = this.props.showElement.bind(this),
       initializeEndClick = this.props.initializeEndClick.bind(this),
-      endAnimationTriggered = this.props.endAnimationTriggered,
       colossusUrl = "http://colossus.bcgsc.ca/dlp/library/";
 
     const mainSvg = initializeSvg(".CircleChart");
 
-    const tooltip = initializeTooltip();
+    initializeTooltip();
     const color = initializeColors(samples.length);
 
     const clusters = getClusters();
@@ -49,7 +48,6 @@ class CircleChart extends Component {
     startLineAnimation();
     appendSwitchViewsButtons();
     appendSortToggle();
-    appendSaturationMatrix();
 
     d3.timeout(function() {
       for (
@@ -120,6 +118,8 @@ class CircleChart extends Component {
           d3
             .select(this)
             .classed("circleView", !d3.select(this).classed("circleView"));
+          hideDetail();
+          d3.selectAll(".pulse ellipse").style("opacity", 0);
           toggleViews();
         })
         .style("opacity", 0);
@@ -216,24 +216,6 @@ class CircleChart extends Component {
       ) {
         hoveredCircleSelection.classed("greyedOutCircle", true);
       }
-    }
-
-    function shadeRGBColor(color, percent) {
-      var f = color.split(","),
-        t = percent < 0 ? 0 : 255,
-        p = percent < 0 ? percent * -1 : percent,
-        R = parseInt(f[0].slice(4)),
-        G = parseInt(f[1]),
-        B = parseInt(f[2]);
-      return (
-        "rgb(" +
-        (Math.round((t - R) * p) + R) +
-        "," +
-        (Math.round((t - G) * p) + G) +
-        "," +
-        (Math.round((t - B) * p) + B) +
-        ")"
-      );
     }
 
     function selectSample(d) {
@@ -566,33 +548,6 @@ class CircleChart extends Component {
         .style("fill", function(d, i) {
           return color(samples.indexOf(d.data.sample));
         });
-    }
-    function appendSaturationMatrix() {
-      var defs = mainSvg.append("defs");
-      var colourMatrix =
-        "\
-      3  0   0   0   0\
-        0  3  0   0   0\
-        0   0  3  0   0\
-        0   0   0  1  0";
-
-      var filter = defs.append("filter").attr("id", "dark-shadow");
-      var highlightFilter = defs.append("filter").attr("id", "highlighter");
-      var blur = defs
-        .append("filter")
-        .attr("id", "blurred")
-        .append("feGaussianBlur")
-        .attr("stdDeviation", 5);
-
-      highlightFilter
-        .append("feColorMatrix")
-        .attr("type", "saturate")
-        .attr("values", "0.5");
-
-      filter
-        .append("feColorMatrix")
-        .attr("type", "matrix")
-        .attr("values", colourMatrix);
     }
   }
   render() {

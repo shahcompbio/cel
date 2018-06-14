@@ -32,10 +32,10 @@ const Chart = ({ stats, library, samples }) => {
           stats.libraryDates
             .reduce((result, hit) => [...result, hit.seq], [])
             .map((date, i) => {
-              if (i == 0) {
+              if (i === 0) {
                 date.setDate(1);
               }
-              if (i == stats.libraryDates.length - 1) {
+              if (i === stats.libraryDates.length - 1) {
                 date.setDate(30);
               }
               return date;
@@ -67,7 +67,6 @@ const Chart = ({ stats, library, samples }) => {
         d3.selectAll("*").transition();
 
         hideElement(lineChartClasses);
-        //  showElement("switchViews")
         d3.selectAll(lineChartClasses).classed("clicked", true);
 
         goToEndAnimation(true);
@@ -240,27 +239,9 @@ const Chart = ({ stats, library, samples }) => {
       });
   }
   function showDetail(d) {
-    d3.event.stopPropagation();
-    //  d3
-    //  .selectAll("circle")
-    //    .transition()
-    //    .duration(100)
-    // .attr("r", function(d) {
-    //    return d.r - 4;
-    //    });
-
-    //  d3
-    ////        .select(this)
-    //      .attr("r", function(d) {
-    //          return d.r;
-    //      })
-    //    .classed("greyedOutCircle", false);*
-    //  .classed("circleHighlighter", true);
-
     d3
       .select(".tooltip")
       .classed("hover", true)
-      .classed("library-" + d.data.library, true)
       .html(
         "<b>Sample</b>: " +
           d.data.sample +
@@ -275,18 +256,7 @@ const Chart = ({ stats, library, samples }) => {
       .style("top", d3.event.pageY + "px");
   }
 
-  function hideDetail(d, i) {
-    //d3.selectAll("circle");
-    //  .transition()
-    //  .duration(100)
-    //    .attr("r", function(d) {
-    //      return d.r;
-    //    });
-    ////  d3.select(this).classed("greyedOutCircle", function() {
-    //    return d3.select(this).classed("unselectedSample") ? true : false;
-    //    });
-    //  .classed("circleHighlighter", false);
-
+  function hideDetail() {
     d3
       .select(".tooltip")
       .classed("hover", false)
@@ -303,12 +273,13 @@ const Chart = ({ stats, library, samples }) => {
         xScale={xScale}
         yScale={yScale}
         hideChart={hideChart}
-        initializeEndClick={initializeEndClick}
         initializeSvg={initializeSvg}
         initializeYaxis={initializeYaxis}
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}
         showElement={showElement}
+        showDetail={showDetail}
+        hideDetail={hideDetail}
       />
       <CircleChart
         library={library}
@@ -316,7 +287,6 @@ const Chart = ({ stats, library, samples }) => {
         stats={stats}
         margin={margin}
         windowDim={windowDim}
-        yScale={yScale}
         xScale={xScale}
         goToEndAnimation={goToEndAnimation}
         initializeEndClick={initializeEndClick}
@@ -324,6 +294,7 @@ const Chart = ({ stats, library, samples }) => {
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}
         showElement={showElement}
+        hideDetail={hideDetail}
       />
     </div>
   );

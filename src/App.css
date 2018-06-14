@@ -70,11 +70,6 @@ circle {
   stroke-width: 1px;
   stroke-opacity: 0;
 }
-
-.circleHighlighter {
-  stroke-opacity: 1;
-  filter: url(#highlighter);
-}
 .greyedOutHoverSample {
   fill: grey !important;
   opacity: 0.5;
@@ -90,8 +85,14 @@ circle {
   opacity: 1 !important;
 }
 .pulse {
-  /* Giving Animation Function */
   -webkit-animation: pulse 2s linear infinite;
+}
+.pulse ellipse {
+  fill: "blue" !important;
+}
+.focusMarker {
+  fill: steelblue;
+  stroke: #3f75a2;
 }
 /**TOOLTIP**/
 div.tooltip {

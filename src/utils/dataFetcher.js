@@ -123,9 +123,6 @@ function nestedNotation(data) {
 }
 
 function getLibraryMonthStats(libraryData) {
-  //const chosen = (({ accCellCount, seq }) => ({ accCellCount, seq }))(
-  //  libraryData
-  //  );
   const timeFormat = d3.timeFormat("%B-%Y");
   var reducedArray = [];
   const chosen = libraryData
@@ -139,18 +136,6 @@ function getLibraryMonthStats(libraryData) {
       }),
       []
     );
-  /*  .each(hit => {
-      var index;
-      if (finalArray.length === 0) {
-        index = 0;
-      } else if (finalArray[finalArray.length - 1].month === hit.month) {
-        index = finalArray.length - 1;
-      } else {
-        index = finalArray.length;
-      }
-      finalArray[index] = hit;
-    }, []);
-  console.log(chosen);*/
 }
 
 export default getData;
