@@ -84,15 +84,11 @@ circle {
   stroke: black;
   opacity: 1 !important;
 }
-.pulse {
-  -webkit-animation: pulse 2s linear infinite;
-}
-.pulse ellipse {
-  fill: "blue" !important;
-}
 .focusMarker {
   fill: steelblue;
-  stroke: #3f75a2;
+}
+.lineMarkerFocus {
+  fill: #1f3a51;
 }
 /**TOOLTIP**/
 div.tooltip {
@@ -145,7 +141,11 @@ div.title {
   fill: black;
   font-size: 15px;
 }
-
+.lineGraphToolTip {
+  text-align: left !important;
+  width: 200px !important;
+  stroke: 1px, black;
+}
 /**TOGGLE ORDER**/
 .toggles {
   vertical-align: top;

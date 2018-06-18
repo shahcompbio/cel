@@ -39,7 +39,7 @@ class Counter extends Component {
         .style("pointer-events", "none")
         .append("text")
         .attr("class", "counter")
-        .attr("x", width - margin.left + "px")
+        .attr("x", width - 2 * margin.left + "px")
         .attr("y", margin.top + "px")
         .text(d => setTitle(0));
     }

@@ -14,12 +14,14 @@ class LineChart extends Component {
 
   createChart() {
     const libraryDates = this.props.stats.libraryDates,
+      nestedLibraryDates = this.props.stats.nestedLibraryDates,
       dim = this.props.windowDim,
       margin = this.props.margin,
       line = this.props.line,
       yScale = this.props.yScale,
       xScale = this.props.xScale,
-      hideDetail = this.props.hideDetail.bind(this),
+      showTooltip = this.props.showTooltip.bind(this),
+      hideTooltip = this.props.hideTooltip.bind(this),
       hideChart = this.props.hideChart.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeYaxis = this.props.initializeYaxis.bind(this),
@@ -31,11 +33,17 @@ class LineChart extends Component {
     initializeYaxis(mainSvg);
     appendClipPath(mainSvg);
     appendLine(mainSvg);
-    appendMouseFocus(mainSvg, line, zoom);
+    appendLineMarkers(mainSvg, nestedLibraryDates);
     hideChart();
 
+    /**
+     * Append the clip path to the line chart for curtain animation
+     *
+     * @param {Object} mainSvg - the element that holds the chart
+     */
     function appendClipPath(mainSvg) {
       mainSvg.style("overflow", "visible").style("pointer-events", "none");
+
       mainSvg
         .append("clipPath")
         .attr("id", "rectClip")
@@ -44,26 +52,49 @@ class LineChart extends Component {
         .attr("height", dim.height);
     }
 
+    /**
+     * Append the line to the chart
+     *
+     * @param {Object} mainSvg - the element that holds the chart
+     */
     function appendLine(mainSvg) {
       mainSvg
         .append("g")
         .attr("class", "lineFocus")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        .attr("clip-path", "url(#clip)")
         .call(zoom)
         .append("path")
         .datum(libraryDates)
         .attr("class", "line")
+        .attr("id", "lineChart")
         .attr("d", line)
+        .attr("x", margin.left)
+        .attr("y", margin.top)
         .attr("clip-path", "url(#rectClip)");
+
+      mainSvg
+        .select(".lineFocus")
+        .append("clipPath")
+        .attr("id", "clip")
+        .append("rect")
+        .attr("width", dim.width)
+        .attr("height", dim.height);
 
       d3
         .select("#rectClip rect")
         .transition()
-        .duration(7000)
+        .duration(6000)
         .ease(d3.easeSinInOut)
         .attr("width", dim.width);
     }
-    function appendMouseFocus(mainSvg, line, zoom) {
+
+    /**
+     * Append the circle markers to the line chart
+     *
+     * @param {Object} mainSvg - the element that holds the chart
+     */
+    function appendLineMarkers(mainSvg, nestedLibraryDates) {
       mainSvg
         .select(".lineFocus")
         .append("g")
@@ -71,22 +102,13 @@ class LineChart extends Component {
 
       var focus = mainSvg.select(".markers");
 
-      var nestedDates = libraryDates.reduce((rv, x) => {
-        if (rv.hasOwnProperty(x["seq"])) {
-          rv[x["seq"]] = [...rv[x["seq"]], x];
-        } else {
-          rv[x["seq"]] = [x];
-        }
-        return rv;
-      }, {});
-
-      for (var seqDate in nestedDates) {
-        var date = nestedDates[seqDate];
+      for (var seqDate in nestedLibraryDates) {
+        var date = nestedLibraryDates[seqDate];
         var markerLib = date[date.length - 1];
         focus
           .append("ellipse")
-          .attr("rx", date.length)
-          .attr("ry", date.length)
+          .attr("rx", 4)
+          .attr("ry", 4)
           .attr("class", "focusMarker")
           .attr("id", "cellCount-" + markerLib.accCellCount)
           .attr(
@@ -94,8 +116,10 @@ class LineChart extends Component {
             d =>
               "translate(" +
               xScale(markerLib.seq) +
+              6 +
               "," +
               yScale(markerLib.accCellCount) +
+              6 +
               ")"
           )
           .style("opacity", 0);
@@ -109,9 +133,15 @@ class LineChart extends Component {
         .attr("height", dim.screenHeight)
         .on("mousemove", function() {
           var mouse = d3.mouse(this);
-          moveMarker(mouse, nestedDates);
+          moveChartMarker(mouse, nestedLibraryDates);
         });
     }
+
+    /**
+     * Find the closest point on the line graph to the mouse
+     *
+     * @param {Object} mouse - holds coordinates
+     */
     function getBisector(mouse) {
       var bisectDate = d3.bisector(function(d) {
           return d.seq;
@@ -125,49 +155,50 @@ class LineChart extends Component {
         ? d1
         : d1 === undefined ? d0 : xDate - d0.seq > d1.seq - xDate ? d1 : d0;
     }
+
+    /**
+     * Append text to the line tooltip
+     *
+     * @param {Object} day - the element that is closest to the mouse
+     */
     function showLineToolTip(day) {
-      d3
-        .select(".tooltip")
-        .classed("hover", true)
-        .html(
-          "<b>Samples</b>: <br />" +
-            [...new Set(day.map(item => item.sample))].join(", <br />") +
-            "<br/> <b>Library</b>: <br />" +
-            [...new Set(day.map(item => item.library))].join(", <br />") +
-            "<br /> <b>Total Cells Sequenced Up To  " +
-            d3.timeFormat("%Y-%m-%d")(day[day.length - 1].seq) +
-            "</b>: " +
-            day[day.length - 1].accCellCount
-        )
-        .style("left", xScale(day[day.length - 1].seq) + 50 + "px")
-        .style("top", yScale(day[day.length - 1].accCellCount) + 50 + "px");
+      var htmlText =
+        "<b>Samples</b>: " +
+        [...new Set(day.map(item => item.sample))].join(", ") +
+        "<br/> <b>Library</b>: " +
+        [...new Set(day.map(item => item.library))].join(", ") +
+        "<br /> </br><b>Total Cells Sequenced</br>by  " +
+        d3.timeFormat("%B %d %Y")(day[day.length - 1].seq) +
+        "</b>: " +
+        day[day.length - 1].accCellCount;
+
+      showTooltip(day, htmlText);
     }
-    function moveMarker(mouse, nestedDates) {
+
+    /**
+     * Changes the apperance of the closest circle marker
+     *
+     * @param {Object} mouse -  holds coordinates
+     * @param {Object} nestedLibraryDates - library dates but collapsed by day
+     */
+    function moveChartMarker(mouse, nestedLibraryDates) {
       var day = getBisector(mouse);
-      var markerDay = nestedDates[day.seq];
+      var markerDay = nestedLibraryDates[day.seq];
       var library = markerDay[markerDay.length - 1];
       if (library !== undefined) {
         showLineToolTip(markerDay);
-
-        var pulse = d3.select(".lineFocus #cellCount-" + library.accCellCount);
-
-        pulse
-          .style("opacity", 1)
-          .transition()
-          .duration(100)
-          .attr("rx", 2)
-          .attr("ry", 2)
-          .transition()
-          .duration(100)
-          .attr("rx", 7)
-          .attr("ry", 7)
-          .transition()
-          .attr("rx", 3)
-          .attr("ry", 3);
+        d3.selectAll(".focusMarker").classed("lineMarkerFocus", false);
+        d3
+          .select(".lineFocus #cellCount-" + library.accCellCount)
+          .classed("lineMarkerFocus", true);
       } else {
-        hideDetail();
+        hideTooltip();
       }
     }
+
+    /**
+     * Add chart zooming ability
+     */
     function addZoom() {
       var lastPoint = libraryDates.length - 1;
       var x1 = xScale(libraryDates[0].seq);
@@ -182,6 +213,9 @@ class LineChart extends Component {
         .translateExtent([[x1, y1], [x2, y2]])
         .on("zoom", zooming);
     }
+    /**
+     * Scales chart and axis on zoom
+     */
     function zooming() {
       var xAxisObj = d3
         .axisBottom(xScale)
@@ -204,10 +238,9 @@ class LineChart extends Component {
       xAxis.call(xAxisObj.scale(new_xScale));
       yAxis.call(yAxisObj.scale(new_yScale));
 
-      d3.event.transform.x = d3.event.transform.x;
-      d3.event.transform.y = d3.event.transform.y;
       // update circle
-      d3.select(".lineFocus").attr("transform", d3.event.transform);
+      d3.select(".lineFocus path").attr("transform", d3.event.transform);
+      d3.select(".markers").attr("transform", d3.event.transform);
     }
   }
 

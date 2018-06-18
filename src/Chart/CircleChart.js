@@ -19,28 +19,34 @@ class CircleChart extends Component {
       dim = this.props.windowDim,
       margin = this.props.margin,
       xScale = this.props.xScale,
+      appendSwitchViewsButtons = this.props.appendSwitchViewsButtons.bind(this),
       goToEndAnimation = this.props.goToEndAnimation.bind(this),
       initializeSvg = this.props.initializeSvg.bind(this),
       initializeXaxis = this.props.initializeXaxis.bind(this),
-      hideDetail = this.props.hideDetail.bind(this),
       hideElement = this.props.hideElement.bind(this),
       showElement = this.props.showElement.bind(this),
       initializeEndClick = this.props.initializeEndClick.bind(this),
       colossusUrl = "http://colossus.bcgsc.ca/dlp/library/";
 
+    //Append the main CircleChart svg container
     const mainSvg = initializeSvg(".CircleChart");
 
+    //Append a tooltip div
     initializeTooltip();
     const color = initializeColors(samples.length);
 
+    //Initialize location of circles according to similiar samples
     const clusters = getClusters();
 
+    //Append a coloured line for animation
     const pointData = splitLineGraph(color, libraries);
 
+    //Final data used containing x,y cordinates of circles
     const updatedNodes = libraries.map((d, i) => {
       return { p1: pointData[i].p1, ...d };
     });
 
+    //Initialize a forced directed circle graph
     const simulation = forceSimulation(updatedNodes);
     initializeEndClick();
 
@@ -49,6 +55,7 @@ class CircleChart extends Component {
     appendSwitchViewsButtons();
     appendSortToggle();
 
+    //Force ticks to speed up force directed graph speed
     d3.timeout(function() {
       for (
         var i = 0,
@@ -104,47 +111,6 @@ class CircleChart extends Component {
         }
       });
       return clusters;
-    }
-
-    function appendSwitchViewsButtons() {
-      d3
-        .select(".App")
-        .append("div")
-        .classed("switchViews", true)
-        .classed("circleView", true)
-        .style("margin-top", dim.height / 3 + "px")
-        .text(">")
-        .on("mousedown", function() {
-          d3
-            .select(this)
-            .classed("circleView", !d3.select(this).classed("circleView"));
-          hideDetail();
-          d3.selectAll(".pulse ellipse").style("opacity", 0);
-          toggleViews();
-        })
-        .style("opacity", 0);
-    }
-
-    function toggleViews() {
-      if (d3.select(".switchViews").classed("circleView")) {
-        //Show the circle chart
-        showElement(".CircleChart");
-        showElement(".toggles");
-        d3.select(".CircleChart").style("pointer-events", "all");
-        //Hide the line chart
-        hideElement(
-          ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
-        );
-      } else {
-        //Show the line chart
-        showElement(
-          ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
-        );
-        //Hide the circle chart
-        d3.select(".CircleChart").style("pointer-events", "none");
-        hideElement(".CircleChart");
-        hideElement(".toggles");
-      }
     }
     function appendSortToggle() {
       initSortContainers();
@@ -526,7 +492,7 @@ class CircleChart extends Component {
       d3
         .selectAll(".sepLines")
         .transition()
-        .delay(8000)
+        .delay(6000)
         .style("opacity", 1)
         .transition()
         .delay(2000)

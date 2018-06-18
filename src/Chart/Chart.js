@@ -15,6 +15,7 @@ const Chart = ({ stats, library, samples }) => {
     height: window.innerHeight * 0.8
   };
 
+  //Global margins
   const margin = {
     top: windowDim.screenHeight / 15,
     right: 10,
@@ -76,17 +77,21 @@ const Chart = ({ stats, library, samples }) => {
       }
     });
   }
+  /**
+   * Hide the line chart with a delay
+   */
   function hideChart() {
     d3
       .selectAll(lineChartClasses)
       .transition()
-      .delay(8000)
+      .delay(6000)
       .style("opacity", 0);
   }
 
   function removeEndClickListener() {
     d3.select("body").on("mousedown", null);
   }
+
   /**
    * Initializes an svg element.
    *
@@ -199,14 +204,19 @@ const Chart = ({ stats, library, samples }) => {
       .attr("width", windowDim.width);
   }
 
+  /**
+   * Go to the end of the circle animation
+   *
+   * @param {Object} isStaticTransition - if true there is no delay or transition duration
+   */
   function goToEndAnimation(isStaticTransition) {
     d3
       .selectAll("circle")
-      .on("mouseenter", showDetail)
-      .on("mouseleave", hideDetail)
+      .on("mouseenter", d => showTooltip(d, false))
+      .on("mouseleave", hideTooltip)
       .transition()
       .delay(function() {
-        return isStaticTransition ? 0 : 12000;
+        return isStaticTransition ? 0 : 10000;
       })
       .duration(function() {
         return isStaticTransition ? 0 : 200;
@@ -236,32 +246,104 @@ const Chart = ({ stats, library, samples }) => {
       .on("end", function() {
         showElement(".toggles");
         showElement(".switchViews");
+        removeEndClickListener();
       });
   }
-  function showDetail(d) {
+
+  /**
+   * Show the tooltip.
+   *
+   * @param {Object} d - data of hovered element
+   * @param {boolean} isLineGraph - if true display different text
+   */
+  function showTooltip(d, isLineGraph) {
     d3
       .select(".tooltip")
       .classed("hover", true)
-      .html(
-        "<b>Sample</b>: " +
-          d.data.sample +
-          "<br/> <b>Library</b>: " +
-          d.data.library +
-          "<br /> <b>Total Cells</b>: " +
-          d.data.size +
-          "<br /> <b>Seq Date</b>: " +
-          d3.timeFormat("%Y-%m-%d")(d.data.seq)
+      .classed("lineGraphToolTip", isLineGraph)
+      .html(function() {
+        return isLineGraph
+          ? isLineGraph
+          : "<b>Sample</b>: " +
+              d.data.sample +
+              "<br/> <b>Library</b>: " +
+              d.data.library +
+              "<br /> <b>Total Cells</b>: " +
+              d.data.size +
+              "<br /> <b>Seq Date</b>: " +
+              d3.timeFormat("%Y-%m-%d")(d.data.seq);
+      })
+      .style(
+        "left",
+        d =>
+          isLineGraph
+            ? xScale(xScale.domain()[1]) - 250 + "px"
+            : d3.event.pageX + "px"
       )
-      .style("left", d3.event.pageX + "px")
-      .style("top", d3.event.pageY + "px");
+      .style(
+        "top",
+        d => (isLineGraph ? yScale(0) - 200 + "px" : d3.event.pageY + "px")
+      );
   }
 
-  function hideDetail() {
+  /**
+   * Hide the tooltip.
+   */
+  function hideTooltip() {
     d3
       .select(".tooltip")
       .classed("hover", false)
       .style("left", "0px")
       .style("top", "0px");
+  }
+
+  /**
+   * Append an arrow button to switch views
+   */
+  function appendSwitchViewsButtons() {
+    d3
+      .select(".App")
+      .append("div")
+      .classed("switchViews", true)
+      .classed("circleView", true)
+      .style("margin-top", windowDim.height / 3 + "px")
+      .text(">")
+      .on("mousedown", function() {
+        d3
+          .select(this)
+          .classed("circleView", !d3.select(this).classed("circleView"));
+        hideTooltip();
+        toggleSwitchViews();
+      })
+      .style("opacity", 0);
+  }
+
+  /**
+   *  Toggle between circle chart and line graph
+   */
+  function toggleSwitchViews() {
+    if (d3.select(".switchViews").classed("circleView")) {
+      //Show the circle chart
+      showElement(".CircleChart");
+      showElement(".toggles");
+      d3.select(".tooltip").classed("lineGraphToolTip", false);
+      d3.select(".CircleChart").style("pointer-events", "all");
+
+      //Hide the line chart
+      hideElement(
+        ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
+      );
+    } else {
+      //Show the line chart
+      showElement(
+        ".LineChart .xAxis, .LineChart text, .LineChart .yAxis,.LineChart .line, .focusMarker"
+      );
+
+      //Hide the circle chart
+      d3.select(".CircleChart").style("pointer-events", "none");
+      hideElement(".CircleChart");
+      hideElement(".toggles");
+    }
   }
   return (
     <div className="Charts">
@@ -278,8 +360,8 @@ const Chart = ({ stats, library, samples }) => {
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}
         showElement={showElement}
-        showDetail={showDetail}
-        hideDetail={hideDetail}
+        showTooltip={showTooltip}
+        hideTooltip={hideTooltip}
       />
       <CircleChart
         library={library}
@@ -294,7 +376,7 @@ const Chart = ({ stats, library, samples }) => {
         initializeXaxis={initializeXaxis}
         hideElement={hideElement}
         showElement={showElement}
-        hideDetail={hideDetail}
+        appendSwitchViewsButtons={appendSwitchViewsButtons}
       />
     </div>
   );

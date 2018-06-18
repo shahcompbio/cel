@@ -11,17 +11,18 @@ const getData = callback => {
       stats: {
         cellCount: getCellCount(libraries),
         libraryCount: libraries.length,
-        libraryMonthRange: getMonthRange(libraries),
         libraryDates: addLibraryDates(libraries, samples)
       }
     };
-    data.stats["libraryMonthDates"] = getLibraryMonthStats(
+    data["stats"]["nestedLibraryDates"] = getNestLibraryDates(
       data.stats.libraryDates
     );
     callback(data);
   });
 };
-
+function getCellCount(data) {
+  return data.reduce((sum, lib) => sum + lib.size, 0);
+}
 async function fetchUrl(url, arr, callback) {
   if (url == null) {
     callback(arr);
@@ -76,24 +77,6 @@ function addLibraryDates(data, samples) {
 
   return libraryDates;
 }
-function getMonthRange(data) {
-  data.sort(function(a, b) {
-    return a.seq - b.seq;
-  });
-  return (
-    12 *
-      (data[data.length - 1].seq.getFullYear() -
-        1 -
-        data[0].seq.getFullYear()) +
-    12 -
-    data[0].seq.getMonth() +
-    data[data.length - 1].seq.getMonth()
-  );
-}
-
-function getCellCount(data) {
-  return data.reduce((sum, lib) => sum + lib.size, 0);
-}
 
 const pack = d3
   .pack()
@@ -121,21 +104,15 @@ function nestedNotation(data) {
       return a.data.seq - b.data.seq;
     });
 }
-
-function getLibraryMonthStats(libraryData) {
-  const timeFormat = d3.timeFormat("%B-%Y");
-  var reducedArray = [];
-  const chosen = libraryData
-    .map(library =>
-      (({ accCellCount, seq }) => ({ accCellCount, seq }))(library)
-    )
-    .map(
-      library => ({
-        count: library.accCellCount,
-        month: timeFormat(library.seq)
-      }),
-      []
-    );
+function getNestLibraryDates(libraryDates) {
+  return libraryDates.reduce((rv, x) => {
+    if (rv.hasOwnProperty(x["seq"])) {
+      rv[x["seq"]] = [...rv[x["seq"]], x];
+    } else {
+      rv[x["seq"]] = [x];
+    }
+    return rv;
+  }, {});
 }
 
 export default getData;
